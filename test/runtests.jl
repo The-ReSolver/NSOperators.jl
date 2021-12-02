@@ -1,4 +1,4 @@
 using NSOperators
 using Test
 
-include("test_resolvent.jl")
+include("test_localresidual.jl")
