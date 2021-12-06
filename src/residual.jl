@@ -1,9 +1,11 @@
 # This file contains the definitions required to compute the local residual
 # of an incompressible fluctuation velocity field.
 
-export LocalResidual!
+export residual
 
-struct LocalResidual!{T, S, P, BC, PLANS}
+# TODO: test this
+# TODO: zero mode (mean constraint)
+struct _LocalResidual!{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
     bc_cache::NTuple{2, BC}
@@ -39,7 +41,7 @@ struct LocalResidual!{T, S, P, BC, PLANS}
     end
 end
 
-function (f::LocalResidual!{T, S, P})(res::Vector{S}, u::Vector{S}) where {T, S, P}
+function (f::_LocalResidual!{T, S, P})(res::Vector{S}, u::Vector{S}) where {T, S, P}
     # assign spectral array aliases
     dudt = f.spec_cache[1]
     dvdt = f.spec_cache[2]
@@ -149,3 +151,5 @@ function (f::LocalResidual!{T, S, P})(res::Vector{S}, u::Vector{S}) where {T, S,
     res[2] .= dvdt .- f.Re_recip.*(d2vdy2 .+ d2vdz2) .+ f.Ro.*u[1] .+ v_dvdy .+ w_dvdz .+ dpdy
     res[3] .= dwdt .- f.Re_recip.*(d2wdy2 .+ d2wdz2) .+ v_dwdy .+ w_dwdz .+ dpdz
 end
+
+residual(res::V) where {T, S<:AbstractArray{Complex{T}, 3}, V<:AbstractVector{S}} = norm(res)
