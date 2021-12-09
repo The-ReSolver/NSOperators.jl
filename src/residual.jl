@@ -29,7 +29,7 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
         IFFT = IFFTPlan!(û)
 
         # define laplace operator
-        lapl = Laplace(size[1], size[2], grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
+        lapl = Laplace(size[1], size[2], u.grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
 
         # define boundary data cache
         bc_cache = (Matrix{Complex{T}}(undef, size[2], size[3]),
@@ -140,7 +140,7 @@ function (f::_LocalResidual!{T, S, P})(res::Vector{S}, u::Vector{S}) where {T, S
     f.bc_cache[2] .= f.Re_recip.*@view d2vdy2[end, :, :]
 
     # solve pressure equation
-    solve!(p, f.laplace, poiss_rhs, f.bc_cache)
+    solve!(p, f.lapl, poiss_rhs, f.bc_cache)
 
     # compute pressure gradient
     dpdy = ddy!(p, dpdy)
@@ -151,5 +151,3 @@ function (f::_LocalResidual!{T, S, P})(res::Vector{S}, u::Vector{S}) where {T, S
     res[2] .= dvdt .- f.Re_recip.*(d2vdy2 .+ d2vdz2) .+ f.Ro.*u[1] .+ v_dvdy .+ w_dvdz .+ dpdy
     res[3] .= dwdt .- f.Re_recip.*(d2wdy2 .+ d2wdz2) .+ v_dwdy .+ w_dwdz .+ dpdz
 end
-
-residual(res::V) where {T, S<:AbstractArray{Complex{T}, 3}, V<:AbstractVector{S}} = norm(res)
