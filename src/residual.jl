@@ -1,22 +1,20 @@
 # This file contains the definitions required to compute the local residual
 # of an incompressible fluctuation velocity field.
 
-export residual
-
 # TODO: test this
 # TODO: zero mode (mean constraint)
 struct _LocalResidual!{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
     bc_cache::NTuple{2, BC}
-    ū::Vector{T}
-    dūdy::Vector{T}
+    ū_data::NTuple{3, Vector{T}}
+    dp̄dy::Vector{T}
     plans::PLANS
     lapl::Laplace
     Re_recip::T
     Ro::T
 
-    function LocalResidual!(û::S, u::P, ū::Vector{T}, dūdy::Vector{T}, Re::T, Ro::T) where {T<:Real, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
+    function LocalResidual!(û::S, u::P, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, dp̄dy::Vector{T}, Re::T, Ro::T) where {T<:Real, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
         # size of array
         size = size(u)
 
@@ -36,7 +34,7 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
                     Matrix{Complex{T}}(undef, size[2], size[3]))
 
         args = (spec_cache, phys_cache, bc_cache,
-                ū, dūdy, (FFT, IFFT), lapl, 1/Re, Ro)
+                (ū, dūdy, d2ūdy2), dp̄dy, (FFT, IFFT), lapl, 1/Re, Ro)
         new{T, S, P, typeof(bc_cache[1]), typeof((FFT, IFFT))}(args...)
     end
 end
