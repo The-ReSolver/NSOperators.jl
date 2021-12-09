@@ -11,7 +11,7 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
     bc_cache::NTuple{2, BC}
     ū::Vector{T}
     dūdy::Vector{T}
-    plans::NTuple{2, PLANS}
+    plans::PLANS
     lapl::Laplace
     Re_recip::T
     Ro::T
@@ -37,7 +37,7 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
 
         args = (spec_cache, phys_cache, bc_cache,
                 ū, dūdy, (FFT, IFFT), lapl, 1/Re, Ro)
-        new{T, S, P, typeof(bc_cache[1]), typeof(FFT)}(args...)
+        new{T, S, P, typeof(bc_cache[1]), typeof((FFT, IFFT))}(args...)
     end
 end
 
@@ -88,6 +88,8 @@ function (f::_LocalResidual!{T, S, P})(res::Vector{S}, u::Vector{S}) where {T, S
     w_dwdz_t = f.phys_cache[14]
     dvdz_dwdy_t = f.phys_cache[15]
     dvdy_dwdz_t = f.phys_cache[16]
+    FFT = f.plans[1]
+    IFFT = f.plans[2]
 
     # compute all relevent derivatives
     ddt!(u[1], dudt)
@@ -107,14 +109,14 @@ function (f::_LocalResidual!{T, S, P})(res::Vector{S}, u::Vector{S}) where {T, S
     d2dy2!(u[3], d2wdy2)
 
     # compute nonlinear components
-    f.IFFT(v_t, u[2])
-    f.IFFT(w_t, u[3])
-    f.IFFT(dudz_t, dudz)
-    f.IFFT(dvdz_t, dvdz)
-    f.IFFT(dwdz_t, dwdz)
-    f.IFFT(dudy_t, dudy)
-    f.IFFT(dvdy_t, dvdy)
-    f.IFFT(dwdy_t, dwdy)
+    IFFT(v_t, u[2])
+    IFFT(w_t, u[3])
+    IFFT(dudz_t, dudz)
+    IFFT(dvdz_t, dvdz)
+    IFFT(dwdz_t, dwdz)
+    IFFT(dudy_t, dudy)
+    IFFT(dvdy_t, dvdy)
+    IFFT(dwdy_t, dwdy)
     v_dudy_t .= v_t.*dudy_t
     w_dudz_t .= w_t.*dudz_t
     v_dvdy_t .= v_t.*dvdy_t
@@ -123,14 +125,14 @@ function (f::_LocalResidual!{T, S, P})(res::Vector{S}, u::Vector{S}) where {T, S
     w_dwdz_t .= w_t.*dwdz_t
     dvdz_dwdy_t .= dvdz_t.*dwdy_t
     dvdy_dwdz_t .= dvdy_t.*dwdz_t
-    f.FFT(v_dudy, v_dudy_t)
-    f.FFT(w_dudz, w_dudz_t)
-    f.FFT(v_dvdy, v_dvdy_t)
-    f.FFT(w_dvdz, w_dvdz_t)
-    f.FFT(v_dwdy, v_dwdy_t)
-    f.FFT(w_dwdz, w_dwdz_t)
-    f.FFT(dvdz_dwdy, dvdz_dwdy_t)
-    f.FFT(dvdy_dwdz, dvdy_dwdz_t)
+    FFT(v_dudy, v_dudy_t)
+    FFT(w_dudz, w_dudz_t)
+    FFT(v_dvdy, v_dvdy_t)
+    FFT(w_dvdz, w_dvdz_t)
+    FFT(v_dwdy, v_dwdy_t)
+    FFT(w_dwdz, w_dwdz_t)
+    FFT(dvdz_dwdy, dvdz_dwdy_t)
+    FFT(dvdy_dwdz, dvdy_dwdz_t)
 
     # calculate rhs of pressure equation
     poiss_rhs .= 2.0.*(dvdz_dwdy .- dvdy_dwdz) .- f.Ro.*dudy
@@ -150,4 +152,6 @@ function (f::_LocalResidual!{T, S, P})(res::Vector{S}, u::Vector{S}) where {T, S
     res[1] .= dudt .+ u[2].*f.dūdy .- f.Re_recip.*(d2udy2 .+ d2udz2) .- f.Ro.*u[2] .+ v_dudy .+ w_dudz
     res[2] .= dvdt .- f.Re_recip.*(d2vdy2 .+ d2vdz2) .+ f.Ro.*u[1] .+ v_dvdy .+ w_dvdz .+ dpdy
     res[3] .= dwdt .- f.Re_recip.*(d2wdy2 .+ d2wdz2) .+ v_dwdy .+ w_dwdz .+ dpdz
+
+    # calculate zero-mode
 end
