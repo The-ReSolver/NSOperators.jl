@@ -2,7 +2,6 @@
 # of an incompressible fluctuation velocity field.
 
 # TODO: test this
-# TODO: zero mode (mean constraint)
 struct _LocalResidual!{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
@@ -151,9 +150,17 @@ function (f::_LocalResidual!{T, S, P})(res::Vector{S}, U::Vector{S}) where {T, S
     ddz!(Pr, dPdz)
 
     # calculate residual
-    res[1] .= dUdt .+ U[2].*f.dūdy .- f.Re_recip.*(d2Udy2 .+ d2Udz2) .- f.Ro.*U[2] .+ V_dUdy .+ W_dUdz
+    # NOTE: does the mean u vector broadcast correctly when multiplied?
+    res[1] .= dUdt .+ U[2].*f.ū_data[2] .- f.Re_recip.*(d2Udy2 .+ d2Udz2) .- f.Ro.*U[2] .+ V_dUdy .+ W_dUdz
     res[2] .= dVdt .- f.Re_recip.*(d2Vdy2 .+ d2Vdz2) .+ f.Ro.*U[1] .+ V_dVdy .+ W_dVdz .+ dPdy
     res[3] .= dWdt .- f.Re_recip.*(d2Wdy2 .+ d2Wdz2) .+ V_dwdy .+ W_dwdz .+ dPdz
 
-    # calculate zero-mode
+    # calculate mean constraint
+    @views begin
+        res[1][:, 1, 1] .= f.ū_data[3] .- V_dUdy[:, 1, 1] .- W_dUdz[:, 1, 1]
+        res[2][:, 1, 1] .= f.Ro.*f.ū_data[1] .- f.dp̄dy .- V_dVdy[:, 1, 1] .- W_dVdz[:, 1, 1]
+        res[3][:, 1, 1] .= .-V_dWdy[:, 1, 1] .- W_dWdz[:, 1, 1]
+    end
+
+    return res
 end
