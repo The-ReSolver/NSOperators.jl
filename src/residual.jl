@@ -1,7 +1,6 @@
 # This file contains the definitions required to compute the local residual
 # of an incompressible fluctuation velocity field.
 
-# TODO: test this
 struct _LocalResidual!{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
@@ -13,32 +12,32 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
     Re_recip::T
     Ro::T
 
-    function LocalResidual!(û::S, u::P, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, dp̄dy::Vector{T}, Re::T, Ro::T) where {T<:Real, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
+    function _LocalResidual!(U::SpectralField{Ny, Nz, Nt}, u::PhysicalField{Ny, Nz, Nt}, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, dp̄dy::Vector{T}, Re::T, Ro::T) where {Ny, Nz, Nt, T<:Real}
         # size of array
-        size = size(u)
+        grid_size = size(u)
 
         # initialise cached arrays
-        spec_cache = [similar(û) for i in 1:27]
+        spec_cache = [similar(U) for i in 1:27]
         phys_cache = [similar(u) for i in 1:16]
 
         # define plans
         FFT = FFTPlan!(u)
-        IFFT = IFFTPlan!(û)
+        IFFT = IFFTPlan!(U)
 
         # define laplace operator
-        lapl = Laplace(size[1], size[2], u.grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
+        lapl = Laplace(grid_size[1], grid_size[2], u.grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
 
         # define boundary data cache
-        bc_cache = (Matrix{Complex{T}}(undef, size[2], size[3]),
-                    Matrix{Complex{T}}(undef, size[2], size[3]))
+        bc_cache = (Matrix{Complex{T}}(undef, grid_size[2], grid_size[3]),
+                    Matrix{Complex{T}}(undef, grid_size[2], grid_size[3]))
 
         args = (spec_cache, phys_cache, bc_cache,
                 (ū, dūdy, d2ūdy2), dp̄dy, (FFT, IFFT), lapl, 1/Re, Ro)
-        new{T, S, P, typeof(bc_cache[1]), typeof((FFT, IFFT))}(args...)
+        new{T, typeof(U), typeof(u), typeof(bc_cache[1]), typeof((FFT, IFFT))}(args...)
     end
 end
 
-function (f::_LocalResidual!{T, S, P})(res::Vector{S}, U::Vector{S}) where {T, S, P}
+function (f::_LocalResidual!)(res::Vector{SpectralField{Ny, Nz, Nt}}, U::Vector{SpectralField{Ny, Nz, Nt}}) where {Ny, Nz, Nt}
     # assign spectral array aliases
     dUdt = f.spec_cache[1]
     dVdt = f.spec_cache[2]
