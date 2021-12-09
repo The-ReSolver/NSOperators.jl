@@ -39,117 +39,121 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
     end
 end
 
-function (f::_LocalResidual!{T, S, P})(res::Vector{S}, u::Vector{S}) where {T, S, P}
+function (f::_LocalResidual!{T, S, P})(res::Vector{S}, U::Vector{S}) where {T, S, P}
     # assign spectral array aliases
-    dudt = f.spec_cache[1]
-    dvdt = f.spec_cache[2]
-    dwdt = f.spec_cache[3]
-    dudz = f.spec_cache[4]
-    dvdz = f.spec_cache[5]
-    dwdz = f.spec_cache[6]
-    d2udz2 = f.spec_cache[7]
-    d2vdz2 = f.spec_cache[8]
-    d2wdz2 = f.spec_cache[9]
-    dudy = f.spec_cache[10]
-    dvdy = f.spec_cache[11]
-    dwdy = f.spec_cache[12]
-    d2udy2 = f.spec_cache[13]
-    d2vdy2 = f.spec_cache[14]
-    d2wdy2 = f.spec_cache[15]
-    p = f.spec_cache[16]
-    dpdy = f.spec_cache[17]
-    dpdz = f.spec_cache[18]
+    dUdt = f.spec_cache[1]
+    dVdt = f.spec_cache[2]
+    dWdt = f.spec_cache[3]
+    dUdz = f.spec_cache[4]
+    dVdz = f.spec_cache[5]
+    dWdz = f.spec_cache[6]
+    d2Udz2 = f.spec_cache[7]
+    d2Vdz2 = f.spec_cache[8]
+    d2Wdz2 = f.spec_cache[9]
+    dUdy = f.spec_cache[10]
+    dVdy = f.spec_cache[11]
+    dWdy = f.spec_cache[12]
+    d2Udy2 = f.spec_cache[13]
+    d2Vdy2 = f.spec_cache[14]
+    d2Wdy2 = f.spec_cache[15]
+    Pr = f.spec_cache[16]
+    dPdy = f.spec_cache[17]
+    dPdz = f.spec_cache[18]
     poiss_rhs = f.spec_cache[19]
-    v_dudy = f.spec_cache[20]
-    w_dudz = f.spec_cache[21]
-    v_dvdy = f.spec_cache[22]
-    w_dvdz = f.spec_cache[23]
-    v_dwdy = f.spec_cache[24]
-    w_dwdz = f.spec_cache[25]
-    dvdz_dwdy = f.spec_cache[26]
-    dvdy_dwdz = f.spec_cache[27]
+    V_dUdy = f.spec_cache[20]
+    W_dUdz = f.spec_cache[21]
+    V_dVdy = f.spec_cache[22]
+    W_dVdz = f.spec_cache[23]
+    V_dWdy = f.spec_cache[24]
+    W_dWdz = f.spec_cache[25]
+    dVdz_dWdy = f.spec_cache[26]
+    dVdy_dWdz = f.spec_cache[27]
 
     # assign physical array aliases
-    v_t = f.phys_cache[1]
-    w_t = f.phys_cache[2]
-    dudz_t = f.phys_cache[3]
-    dvdz_t = f.phys_cache[4]
-    dwdz_t = f.phys_cache[5]
-    dudy_t = f.phys_cache[6]
-    dvdy_t = f.phys_cache[7]
-    dwdy_t = f.phys_cache[8]
-    v_dudy_t = f.phys_cache[9]
-    w_dudz_t = f.phys_cache[10]
-    v_dvdy_t = f.phys_cache[11]
-    w_dvdz_t = f.phys_cache[12]
-    v_dwdy_t = f.phys_cache[13]
-    w_dwdz_t = f.phys_cache[14]
-    dvdz_dwdy_t = f.phys_cache[15]
-    dvdy_dwdz_t = f.phys_cache[16]
+    v = f.phys_cache[1]
+    w = f.phys_cache[2]
+    dudz = f.phys_cache[3]
+    dvdz = f.phys_cache[4]
+    dwdz = f.phys_cache[5]
+    dudy = f.phys_cache[6]
+    dvdy = f.phys_cache[7]
+    dwdy = f.phys_cache[8]
+    v_dudy = f.phys_cache[9]
+    w_dudz = f.phys_cache[10]
+    v_dvdy = f.phys_cache[11]
+    w_dvdz = f.phys_cache[12]
+    v_dwdy = f.phys_cache[13]
+    w_dwdz = f.phys_cache[14]
+    dvdz_dwdy = f.phys_cache[15]
+    dvdy_dwdz = f.phys_cache[16]
+
+    # fft transform aliases
     FFT = f.plans[1]
     IFFT = f.plans[2]
 
     # compute all relevent derivatives
-    ddt!(u[1], dudt)
-    ddt!(u[2], dvdt)
-    ddt!(u[3], dwdt)
-    ddz!(u[1], dudz)
-    ddz!(u[2], dvdz)
-    ddz!(u[3], dwdz)
-    d2dz2!(u[1], d2udz2)
-    d2dz2!(u[2], d2vdz2)
-    d2dz2!(u[3], d2wdz2)
-    ddy!(u[1], dudy)
-    ddy!(u[2], dvdy)
-    ddy!(u[3], dwdy)
-    d2dy2!(u[1], d2udy2)
-    d2dy2!(u[2], d2vdy2)
-    d2dy2!(u[3], d2wdy2)
+    ddt!(U[1], dUdt)
+    ddt!(U[2], dVdt)
+    ddt!(U[3], dWdt)
+    ddz!(U[1], dUdz)
+    ddz!(U[2], dVdz)
+    ddz!(U[3], dWdz)
+    d2dz2!(U[1], d2Udz2)
+    d2dz2!(U[2], d2Vdz2)
+    d2dz2!(U[3], d2Wdz2)
+    ddy!(U[1], dUdy)
+    ddy!(U[2], dVdy)
+    ddy!(U[3], dWdy)
+    d2dy2!(U[1], d2Udy2)
+    d2dy2!(U[2], d2Vdy2)
+    d2dy2!(U[3], d2Wdy2)
 
     # compute nonlinear components
-    IFFT(v_t, u[2])
-    IFFT(w_t, u[3])
-    IFFT(dudz_t, dudz)
-    IFFT(dvdz_t, dvdz)
-    IFFT(dwdz_t, dwdz)
-    IFFT(dudy_t, dudy)
-    IFFT(dvdy_t, dvdy)
-    IFFT(dwdy_t, dwdy)
-    v_dudy_t .= v_t.*dudy_t
-    w_dudz_t .= w_t.*dudz_t
-    v_dvdy_t .= v_t.*dvdy_t
-    w_dvdz_t .= w_t.*dvdz_t
-    v_dwdy_t .= v_t.*dwdy_t
-    w_dwdz_t .= w_t.*dwdz_t
-    dvdz_dwdy_t .= dvdz_t.*dwdy_t
-    dvdy_dwdz_t .= dvdy_t.*dwdz_t
-    FFT(v_dudy, v_dudy_t)
-    FFT(w_dudz, w_dudz_t)
-    FFT(v_dvdy, v_dvdy_t)
-    FFT(w_dvdz, w_dvdz_t)
-    FFT(v_dwdy, v_dwdy_t)
-    FFT(w_dwdz, w_dwdz_t)
-    FFT(dvdz_dwdy, dvdz_dwdy_t)
-    FFT(dvdy_dwdz, dvdy_dwdz_t)
+    IFFT(v, U[2])
+    IFFT(w, U[3])
+    IFFT(dudz, dUdz)
+    IFFT(dvdz, dVdz)
+    IFFT(dwdz, dWdz)
+    IFFT(dudy, dUdy)
+    IFFT(dvdy, dVdy)
+    IFFT(dwdy, dWdy)
+    v_dudy .= v.*dudy
+    w_dudz .= w.*dudz
+    v_dvdy .= v.*dvdy
+    w_dvdz .= w.*dvdz
+    v_dwdy .= v.*dwdy
+    w_dwdz .= w.*dwdz
+    dvdz_dwdy .= dvdz.*dwdy
+    dvdy_dwdz .= dvdy.*dwdz
+    FFT(V_dUdy, v_dudy)
+    FFT(W_dUdz, w_dudz)
+    FFT(V_dVdy, v_dvdy)
+    FFT(W_dVdz, w_dvdz)
+    FFT(V_dWdy, v_dwdy)
+    FFT(W_dWdz, w_dwdz)
+    FFT(dVdz_dWdy, dvdz_dwdy)
+    FFT(dVdy_dWdz, dvdy_dwdz)
 
     # calculate rhs of pressure equation
-    poiss_rhs .= 2.0.*(dvdz_dwdy .- dvdy_dwdz) .- f.Ro.*dudy
+    poiss_rhs .= 2.0.*(dVdz_dWdy .- dVdy_dWdz) .- f.Ro.*dUdy
 
     # calculate boundary condition data of pressure equation
-    f.bc_cache[1] .= f.Re_recip.*@view d2vdy2[1, :, :]
-    f.bc_cache[2] .= f.Re_recip.*@view d2vdy2[end, :, :]
+    @views begin
+        f.bc_cache[1] .= f.Re_recip.*d2Vdy2[1, :, :]
+        f.bc_cache[2] .= f.Re_recip.*d2Vdy2[end, :, :]
+    end
 
     # solve pressure equation
-    solve!(p, f.lapl, poiss_rhs, f.bc_cache)
+    solve!(Pr, f.lapl, poiss_rhs, f.bc_cache)
 
     # compute pressure gradient
-    dpdy = ddy!(p, dpdy)
-    dpdz = ddz!(p, dpdz)
+    ddy!(Pr, dPdy)
+    ddz!(Pr, dPdz)
 
     # calculate residual
-    res[1] .= dudt .+ u[2].*f.dūdy .- f.Re_recip.*(d2udy2 .+ d2udz2) .- f.Ro.*u[2] .+ v_dudy .+ w_dudz
-    res[2] .= dvdt .- f.Re_recip.*(d2vdy2 .+ d2vdz2) .+ f.Ro.*u[1] .+ v_dvdy .+ w_dvdz .+ dpdy
-    res[3] .= dwdt .- f.Re_recip.*(d2wdy2 .+ d2wdz2) .+ v_dwdy .+ w_dwdz .+ dpdz
+    res[1] .= dUdt .+ U[2].*f.dūdy .- f.Re_recip.*(d2Udy2 .+ d2Udz2) .- f.Ro.*U[2] .+ V_dUdy .+ W_dUdz
+    res[2] .= dVdt .- f.Re_recip.*(d2Vdy2 .+ d2Vdz2) .+ f.Ro.*U[1] .+ V_dVdy .+ W_dVdz .+ dPdy
+    res[3] .= dWdt .- f.Re_recip.*(d2Wdy2 .+ d2Wdz2) .+ V_dwdy .+ W_dwdz .+ dPdz
 
     # calculate zero-mode
 end
