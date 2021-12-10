@@ -30,7 +30,8 @@
     @test typeof(NSOperators._LocalResidual!(U, u, ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)) == NSOperators._LocalResidual!{Float64, spec_type, phys_type, Matrix{Complex{Float64}}, plan_type}
 
     # catch errors
-    @test_throws MethodError NSOperators._LocalResidual!(SpectralField(Grid(rand(Ny - 1), Nz, Nt, Dy, Dy2, ws, ω, β)), u, ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)
+    @test_throws ArgumentError NSOperators._LocalResidual!(SpectralField(Grid(rand(Ny - 1), Nz, Nt, Dy, Dy2, ws, ω, β)), u, ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)
+    @test_throws ArgumentError NSOperators._LocalResidual!(U, u, rand(Ny - 1), dūdy, d2ūdy2, dp̄dy, Re, Ro)
     @test_throws MethodError NSOperators._LocalResidual!(U, u, rand(Int, Ny), dūdy, d2ūdy2, dp̄dy, Re, Ro)
     @test_throws MethodError NSOperators._LocalResidual!(U, u, ū, dūdy, d2ūdy2, dp̄dy, 1+1im, Ro)
 end

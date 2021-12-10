@@ -12,9 +12,10 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
     Re_recip::T
     Ro::T
 
-    function _LocalResidual!(U::SpectralField{Ny, Nz, Nt}, u::PhysicalField{Ny, Nz, Nt}, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, dp̄dy::Vector{T}, Re::T, Ro::T) where {Ny, Nz, Nt, T<:Real}
-        # size of array
-        grid_size = size(u)
+    function _LocalResidual!(U::S, u::P, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, dp̄dy::Vector{T}, Re::T, Ro::T) where {T<:Real, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
+        # check sizes of arguments are compatible
+        (size(u)[1], (size(u)[2] >> 1) + 1, size(u)[3]) == size(U) || throw(ArgumentError("Arrays are not compatible sizes!"))
+        (size(ū) == size(dūdy) && size(ū) == size(d2ūdy2)) || throw(ArgumentError("Vectors are not compatible sizes!"))
 
         # initialise cached arrays
         spec_cache = [similar(U) for i in 1:27]
@@ -25,19 +26,19 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
         IFFT = IFFTPlan!(U)
 
         # define laplace operator
-        lapl = Laplace(grid_size[1], grid_size[2], u.grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
+        lapl = Laplace(size(u)[1], size(u)[2], u.grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
 
         # define boundary data cache
-        bc_cache = (Matrix{Complex{T}}(undef, grid_size[2], grid_size[3]),
-                    Matrix{Complex{T}}(undef, grid_size[2], grid_size[3]))
+        bc_cache = (Matrix{Complex{T}}(undef, size(u)[2], size(u)[3]),
+                    Matrix{Complex{T}}(undef, size(u)[2], size(u)[3]))
 
         args = (spec_cache, phys_cache, bc_cache,
                 (ū, dūdy, d2ūdy2), dp̄dy, (FFT, IFFT), lapl, 1/Re, Ro)
-        new{T, typeof(U), typeof(u), typeof(bc_cache[1]), typeof((FFT, IFFT))}(args...)
+        new{T, S, P, typeof(bc_cache[1]), typeof((FFT, IFFT))}(args...)
     end
 end
 
-function (f::_LocalResidual!)(res::Vector{SpectralField{Ny, Nz, Nt}}, U::Vector{SpectralField{Ny, Nz, Nt}}) where {Ny, Nz, Nt}
+function (f::_LocalResidual!{T, S, P})(res::S, U::P) where {T, S, P}
     # assign spectral array aliases
     dUdt = f.spec_cache[1]
     dVdt = f.spec_cache[2]
