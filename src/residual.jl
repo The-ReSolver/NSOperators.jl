@@ -38,7 +38,7 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
     end
 end
 
-function (f::_LocalResidual!{T, S, P})(res::S, U::P) where {T, S, P}
+function (f::_LocalResidual!{T, S, P})(res::S, U::S) where {T, S, P}
     # assign spectral array aliases
     dUdt = f.spec_cache[1]
     dVdt = f.spec_cache[2]
