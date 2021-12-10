@@ -51,7 +51,7 @@ version = "3.3.10+0"
 
 [[Fields]]
 deps = ["BenchmarkTools", "ChebUtils", "FFTW", "LinearAlgebra", "Random"]
-git-tree-sha1 = "cc2b1c20db4eb0e72946a7a9f507510d9d9bdfb4"
+git-tree-sha1 = "01e17a839084587c3acf56b8c72b091846b572ca"
 repo-rev = "main"
 repo-url = "https://github.com/The-Resolver/Fields.jl"
 uuid = "54c0c897-3bff-4ba2-acae-d4c1acf2c14a"

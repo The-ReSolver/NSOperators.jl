@@ -29,8 +29,8 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
         lapl = Laplace(size(u)[1], size(u)[2], u.grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
 
         # define boundary data cache
-        bc_cache = (Matrix{Complex{T}}(undef, size(u)[2], size(u)[3]),
-                    Matrix{Complex{T}}(undef, size(u)[2], size(u)[3]))
+        bc_cache = (Matrix{Complex{T}}(undef, size(U)[2], size(U)[3]),
+                    Matrix{Complex{T}}(undef, size(U)[2], size(U)[3]))
 
         args = (spec_cache, phys_cache, bc_cache,
                 (ū, dūdy, d2ūdy2), dp̄dy, (FFT, IFFT), lapl, 1/Re, Ro)
@@ -38,7 +38,7 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
     end
 end
 
-function (f::_LocalResidual!{T, S, P})(res::S, U::S) where {T, S, P}
+function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:AbstractVector{S}}
     # assign spectral array aliases
     dUdt = f.spec_cache[1]
     dVdt = f.spec_cache[2]
@@ -150,10 +150,13 @@ function (f::_LocalResidual!{T, S, P})(res::S, U::S) where {T, S, P}
     ddz!(Pr, dPdz)
 
     # calculate residual
-    # NOTE: does the mean u vector broadcast correctly when multiplied?
-    res[1] .= dUdt .+ U[2].*f.ū_data[2] .- f.Re_recip.*(d2Udy2 .+ d2Udz2) .- f.Ro.*U[2] .+ V_dUdy .+ W_dUdz
-    res[2] .= dVdt .- f.Re_recip.*(d2Vdy2 .+ d2Vdz2) .+ f.Ro.*U[1] .+ V_dVdy .+ W_dVdz .+ dPdy
-    res[3] .= dWdt .- f.Re_recip.*(d2Wdy2 .+ d2Wdz2) .+ V_dwdy .+ W_dwdz .+ dPdz
+    @views @inbounds begin
+        for ny in 1:size(U[1])[1]
+            res[1][ny, :, :] .= dUdt[ny, :, :] .+ U[2][ny, :, :].*f.ū_data[2][ny] .- f.Re_recip.*(d2Udy2[ny, :, :] .+ d2Udz2[ny, :, :]) .- f.Ro.*U[2][ny, :, :] .+ V_dUdy[ny, :, :] .+ W_dUdz[ny, :, :]
+            res[2][ny, :, :] .= dVdt[ny, :, :] .- f.Re_recip.*(d2Vdy2[ny, :, :] .+ d2Vdz2[ny, :, :]) .+ f.Ro.*U[1][ny, :, :] .+ V_dVdy[ny, :, :] .+ W_dVdz[ny, :, :] .+ dPdy[ny, :, :]
+            res[3][ny, :, :] .= dWdt[ny, :, :] .- f.Re_recip.*(d2Wdy2[ny, :, :] .+ d2Wdz2[ny, :, :]) .+ V_dWdy[ny, :, :] .+ W_dWdz[ny, :, :] .+ dPdz[ny, :, :]
+        end
+    end
 
     # calculate mean constraint
     @views begin

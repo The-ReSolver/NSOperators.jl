@@ -38,9 +38,9 @@ end
 
 @testset "Local residual calculation    " begin
     # initialise variables and arrays
-    Ny = 64
-    Nz = 64
-    Nt = 64
+    Ny = 16
+    Nz = 16
+    Nt = 16
     y = chebpts(Ny)
     Dy = chebdiff(Ny)
     Dy2 = chebddiff(Ny)
@@ -118,6 +118,11 @@ end
     res_spec[3] .+= dPdz
 
     # calculate local residual type
-    local_residual = NSOperators._LocalResidual!(U[1], u[1], ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)
-    @test local_residual(SpectralField(grid), U)
+    local_residual! = NSOperators._LocalResidual!(U[1], u[1], ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)
+    res_calc = VectorField(grid)
+    local_residual!(res_calc, U)
+    display(round.(parent(res_calc[1]), digits=5)[5, :, :])
+    println()
+    display(round.(parent(res_spec[1]), digits=5)[5, :, :])
+    # @test local_residual!(VectorField(grid), U)[1][:, 2, 2] ≈ res_spec[1][:, 2, 2] rtol=1e-2
 end
