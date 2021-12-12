@@ -1,19 +1,19 @@
-# This file contains the definitions required to compute the local residual
-# of an incompressible fluctuation velocity field.
+# The file contains the definition for the global cache of the optimisation.
 
-struct _LocalResidual!{T, S, P, BC, PLANS}
+export Cache
+
+struct Cache{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
     bc_cache::NTuple{2, BC}
-    ū_data::NTuple{3, Vector{T}}
-    dp̄dy::Vector{T}
+    mean_data::NTuple{4, Vector{T}}
     plans::PLANS
     lapl::Laplace
     Re_recip::T
     Ro::T
 
-    function _LocalResidual!(U::S, u::P, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, dp̄dy::Vector{T}, Re::T, Ro::T) where {T<:Real, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
-        # check sizes of arguments are compatible
+    function Cache(U::S, u::P, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, dp̄dy::Vector{T}, Re::T, Ro::T) where {T<:Real, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
+        # check compatible sizes
         (size(u)[1], (size(u)[2] >> 1) + 1, size(u)[3]) == size(U) || throw(ArgumentError("Arrays are not compatible sizes!"))
         (size(ū) == size(dūdy) && size(ū) == size(d2ūdy2)) || throw(ArgumentError("Vectors are not compatible sizes!"))
 
@@ -21,9 +21,9 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
         spec_cache = [similar(U) for i in 1:27]
         phys_cache = [similar(u) for i in 1:16]
 
-        # initialise plans
-        FFT = FFTPlan!(u)
-        IFFT = IFFTPlan!(U)
+        # initialise transforms
+        FFT! = FFTPlan!(u)
+        IFFT! = IFFTPlan!(U)
 
         # initialise laplace operator
         lapl = Laplace(size(u)[1], size(u)[2], u.grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
@@ -33,13 +33,18 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
                     Matrix{Complex{T}}(undef, size(U)[2], size(U)[3]))
 
         args = (spec_cache, phys_cache, bc_cache,
-                (ū, dūdy, d2ūdy2), dp̄dy, (FFT, IFFT), lapl, 1/Re, Ro)
-        new{T, S, P, typeof(bc_cache[1]), typeof((FFT, IFFT))}(args...)
+                (ū, dūdy, d2ūdy2), dp̄dy, (FFT!, IFFT!), lapl, 1/Re, Ro)
+        new{T, S, P, typeof(bc_cache[1]), typeof((FFT!, IFFT!))}(args...)
     end
 end
 
-function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:AbstractVector{S}}
-    # assign spectral array aliases
+
+"""
+    Given a velocity field, update all variables stored in the cache such that
+    they can be used to compute the required optimisation variables.
+"""
+function (f::Cache{T, S})(U::V) where {T, S, V<:AbstractVector{S}}
+    # assign spectral aliases
     dUdt = f.spec_cache[1]
     dVdt = f.spec_cache[2]
     dWdt = f.spec_cache[3]
@@ -68,7 +73,7 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     dVdz_dWdy = f.spec_cache[26]
     dVdy_dWdz = f.spec_cache[27]
 
-    # assign physical array aliases
+    # assign physical aliases
     v = f.phys_cache[1]
     w = f.phys_cache[2]
     dudz = f.phys_cache[3]
@@ -86,11 +91,11 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     dvdz_dwdy = f.phys_cache[15]
     dvdy_dwdz = f.phys_cache[16]
 
-    # fft transform aliases
+    # assign transform aliases
     FFT = f.plans[1]
     IFFT = f.plans[2]
 
-    # compute all relevent derivatives
+    # compute derivatives
     ddt!(U[1], dUdt)
     ddt!(U[2], dVdt)
     ddt!(U[3], dWdt)
@@ -133,37 +138,22 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     FFT(dVdz_dWdy, dvdz_dwdy)
     FFT(dVdy_dWdz, dvdy_dwdz)
 
-    # calculate rhs of pressure equation
+    # compute rhs of pressure equation
     poiss_rhs .= 2.0.*(dVdz_dWdy .- dVdy_dWdz) .- f.Ro.*dUdy
 
-    # calculate boundary condition data of pressure equation
+    # extract boundary condition data
+    # TODO: make sure this doesn't assign any memory
     @views begin
         f.bc_cache[1] .= f.Re_recip.*d2Vdy2[1, :, :]
         f.bc_cache[2] .= f.Re_recip.*d2Vdy2[end, :, :]
     end
 
-    # solve pressure equation
+    # solve the pressure equation
     solve!(Pr, f.lapl, poiss_rhs, f.bc_cache)
 
-    # compute pressure gradient
+    # compute pressure gradients
     ddy!(Pr, dPdy)
     ddz!(Pr, dPdz)
 
-    # calculate residual
-    @views @inbounds begin
-        for ny in 1:size(U[1])[1]
-            res[1][ny, :, :] .= dUdt[ny, :, :] .+ U[2][ny, :, :].*f.ū_data[2][ny] .- f.Re_recip.*(d2Udy2[ny, :, :] .+ d2Udz2[ny, :, :]) .- f.Ro.*U[2][ny, :, :] .+ V_dUdy[ny, :, :] .+ W_dUdz[ny, :, :]
-            res[2][ny, :, :] .= dVdt[ny, :, :] .- f.Re_recip.*(d2Vdy2[ny, :, :] .+ d2Vdz2[ny, :, :]) .+ f.Ro.*U[1][ny, :, :] .+ V_dVdy[ny, :, :] .+ W_dVdz[ny, :, :] .+ dPdy[ny, :, :]
-            res[3][ny, :, :] .= dWdt[ny, :, :] .- f.Re_recip.*(d2Wdy2[ny, :, :] .+ d2Wdz2[ny, :, :]) .+ V_dWdy[ny, :, :] .+ W_dWdz[ny, :, :] .+ dPdz[ny, :, :]
-        end
-    end
-
-    # calculate mean constraint
-    @views begin
-        res[1][:, 1, 1] .= f.ū_data[3] .- V_dUdy[:, 1, 1] .- W_dUdz[:, 1, 1]
-        res[2][:, 1, 1] .= f.Ro.*f.ū_data[1] .- f.dp̄dy .- V_dVdy[:, 1, 1] .- W_dVdz[:, 1, 1]
-        res[3][:, 1, 1] .= .-V_dWdy[:, 1, 1] .- W_dWdz[:, 1, 1]
-    end
-
-    return res
+    return U
 end
