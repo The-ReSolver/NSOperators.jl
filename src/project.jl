@@ -15,6 +15,7 @@ struct Project!{S}
         spec_cache = [similar(U) for i in 1:6]
 
         # initialise laplacian
+        # FIXME: initialised with Neumann BCs
         lapl = Laplace(size(u)[1], size(u)[2], U.grid.dom[2], U.grid.Dy[2], U.grid.Dy[1])
 
         new{S}(spec_cache, lapl)

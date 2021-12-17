@@ -3,6 +3,7 @@
 
 export localresidual!
 
+# TODO: take mean data as spectral arrays (or learn broadcasting)
 struct _LocalResidual!{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
@@ -20,7 +21,7 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
         (size(ū) == size(dūdy) && size(ū) == size(d2ūdy2)) || throw(ArgumentError("Vectors are not compatible sizes!"))
 
         # initialise cached arrays
-        spec_cache = [similar(U) for i in 1:27]
+        spec_cache = [similar(U) for i in 1:35]
         phys_cache = [similar(u) for i in 1:16]
 
         # initialise plans
@@ -69,6 +70,14 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     W_dWdz = f.spec_cache[25]
     dVdz_dWdy = f.spec_cache[26]
     dVdy_dWdz = f.spec_cache[27]
+    ifft_tmp1 = f.spec_cache[28]
+    ifft_tmp2 = f.spec_cache[29]
+    ifft_tmp3 = f.spec_cache[30]
+    ifft_tmp4 = f.spec_cache[31]
+    ifft_tmp5 = f.spec_cache[32]
+    ifft_tmp6 = f.spec_cache[33]
+    ifft_tmp7 = f.spec_cache[34]
+    ifft_tmp8 = f.spec_cache[35]
 
     # assign physical array aliases
     v = f.phys_cache[1]
@@ -110,14 +119,15 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     d2dy2!(U[3], d2Wdy2)
 
     # compute nonlinear components
-    IFFT(v, U[2])
-    IFFT(w, U[3])
-    IFFT(dudz, dUdz)
-    IFFT(dvdz, dVdz)
-    IFFT(dwdz, dWdz)
-    IFFT(dudy, dUdy)
-    IFFT(dvdy, dVdy)
-    IFFT(dwdy, dWdy)
+    # FIXME: the modification of inputs of the IFFT is the problem!
+    IFFT(v, U[2], ifft_tmp1)
+    IFFT(w, U[3], ifft_tmp2)
+    IFFT(dudz, dUdz, ifft_tmp3)
+    IFFT(dvdz, dVdz, ifft_tmp4)
+    IFFT(dwdz, dWdz, ifft_tmp5)
+    IFFT(dudy, dUdy, ifft_tmp6)
+    IFFT(dvdy, dVdy, ifft_tmp7)
+    IFFT(dwdy, dWdy, ifft_tmp8)
     v_dudy .= v.*dudy
     w_dudz .= w.*dudz
     v_dvdy .= v.*dvdy
@@ -136,7 +146,7 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     FFT(dVdy_dWdz, dvdy_dwdz)
 
     # calculate rhs of pressure equation
-    poiss_rhs .= 2.0.*(dVdz_dWdy .- dVdy_dWdz) .- f.Ro.*dUdy
+    poiss_rhs .= -2.0.*(dVdz_dWdy .- dVdy_dWdz) .- f.Ro.*dUdy
 
     # calculate boundary condition data of pressure equation
     @views begin
@@ -154,18 +164,25 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     # calculate residual
     @views @inbounds begin
         for ny in 1:size(U[1])[1]
-            res[1][ny, :, :] .= dUdt[ny, :, :] .+ U[2][ny, :, :].*f.ū_data[2][ny] .- f.Re_recip.*(d2Udy2[ny, :, :] .+ d2Udz2[ny, :, :]) .- f.Ro.*U[2][ny, :, :] .+ V_dUdy[ny, :, :] .+ W_dUdz[ny, :, :]
-            res[2][ny, :, :] .= dVdt[ny, :, :] .- f.Re_recip.*(d2Vdy2[ny, :, :] .+ d2Vdz2[ny, :, :]) .+ f.Ro.*U[1][ny, :, :] .+ V_dVdy[ny, :, :] .+ W_dVdz[ny, :, :] .+ dPdy[ny, :, :]
-            res[3][ny, :, :] .= dWdt[ny, :, :] .- f.Re_recip.*(d2Wdy2[ny, :, :] .+ d2Wdz2[ny, :, :]) .+ V_dWdy[ny, :, :] .+ W_dWdz[ny, :, :] .+ dPdz[ny, :, :]
+            # res[1][ny, :, :] .= dUdt[ny, :, :] .+ U[2][ny, :, :].*f.ū_data[2][ny] .- f.Re_recip.*(d2Udy2[ny, :, :] .+ d2Udz2[ny, :, :]) .- f.Ro.*U[2][ny, :, :] .+ V_dUdy[ny, :, :] .+ W_dUdz[ny, :, :]
+            # res[2][ny, :, :] .= dVdt[ny, :, :] .- f.Re_recip.*(d2Vdy2[ny, :, :] .+ d2Vdz2[ny, :, :]) .+ f.Ro.*U[1][ny, :, :] .+ V_dVdy[ny, :, :] .+ W_dVdz[ny, :, :] .+ dPdy[ny, :, :]
+            # res[3][ny, :, :] .= dWdt[ny, :, :] .- f.Re_recip.*(d2Wdy2[ny, :, :] .+ d2Wdz2[ny, :, :]) .+ V_dWdy[ny, :, :] .+ W_dWdz[ny, :, :] .+ dPdz[ny, :, :]
+            res[1][ny, :, :] .= 0.0
+            res[2][ny, :, :] .= dPdy[ny, :, :]
+            res[3][ny, :, :] .= dPdz[ny, :, :]
         end
     end
 
     # calculate mean constraint
-    @views begin
-        res[1][:, 1, 1] .= f.ū_data[3] .- V_dUdy[:, 1, 1] .- W_dUdz[:, 1, 1]
-        res[2][:, 1, 1] .= f.Ro.*f.ū_data[1] .- f.dp̄dy .- V_dVdy[:, 1, 1] .- W_dVdz[:, 1, 1]
-        res[3][:, 1, 1] .= .-V_dWdy[:, 1, 1] .- W_dWdz[:, 1, 1]
-    end
+    # TODO: fix mean constraint part
+    # @views begin
+    #     # res[1][:, 1, 1] .= f.ū_data[3] .- V_dUdy[:, 1, 1] .- W_dUdz[:, 1, 1]
+    #     # res[2][:, 1, 1] .= f.Ro.*f.ū_data[1] .- f.dp̄dy .- V_dVdy[:, 1, 1] .- W_dVdz[:, 1, 1]
+    #     # res[3][:, 1, 1] .= .-V_dWdy[:, 1, 1] .- W_dWdz[:, 1, 1]
+    #     res[1][:, 1, 1] .= 0.0
+    #     res[2][:, 1, 1] .= 0.0
+    #     res[3][:, 1, 1] .= 0.0
+    # end
 
     return res
 end
@@ -198,9 +215,12 @@ function localresidual!(res::V, U::V, cache::Cache{T, S}) where {T, S, V<:Abstra
     # calculate local residual
     @views @inbounds begin
         for ny in 1:size(U[1])[1]
-            res[1][ny, :, :] .= dUdt[ny, :, :] .+ U[2][ny, :, :].*dūdy[ny] .- cache.Re_recip.*(d2Udy2[ny, :, :] .+ d2Udz2[ny, :, :]) .- cache.Ro.*U[2][ny, :, :] .+ V_dUdy[ny, :, :] .+ W_dUdz[ny, :, :]
-            res[2][ny, :, :] .= dVdt[ny, :, :] .- cache.Re_recip.*(d2Vdy2[ny, :, :] .+ d2Vdz2[ny, :, :]) .+ cache.Ro.*U[1][ny, :, :] .+ V_dVdy[ny, :, :] .+ W_dVdz[ny, :, :] .+ dPdy[ny, :, :]
-            res[3][ny, :, :] .= dWdt[ny, :, :] .- cache.Re_recip.*(d2Wdy2[ny, :, :] .+ d2Wdz2[ny, :, :]) .+ V_dWdy[ny, :, :] .+ W_dWdz[ny, :, :] .+ dPdz[ny, :, :]
+            # res[1][ny, :, :] .= dUdt[ny, :, :] .+ U[2][ny, :, :].*dūdy[ny] .- cache.Re_recip.*(d2Udy2[ny, :, :] .+ d2Udz2[ny, :, :]) .- cache.Ro.*U[2][ny, :, :] .+ V_dUdy[ny, :, :] .+ W_dUdz[ny, :, :]
+            # res[2][ny, :, :] .= dVdt[ny, :, :] .- cache.Re_recip.*(d2Vdy2[ny, :, :] .+ d2Vdz2[ny, :, :]) .+ cache.Ro.*U[1][ny, :, :] .+ V_dVdy[ny, :, :] .+ W_dVdz[ny, :, :] .+ dPdy[ny, :, :]
+            # res[3][ny, :, :] .= dWdt[ny, :, :] .- cache.Re_recip.*(d2Wdy2[ny, :, :] .+ d2Wdz2[ny, :, :]) .+ V_dWdy[ny, :, :] .+ W_dWdz[ny, :, :] .+ dPdz[ny, :, :]
+            res[1][ny, :, :] .= 0.0
+            res[2][ny, :, :] .= 0.0
+            res[3][ny, :, :] .= 0.0
         end
     end
 
