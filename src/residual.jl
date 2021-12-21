@@ -29,6 +29,7 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
         IFFT = IFFTPlan!(U)
 
         # initialise laplace operator
+        # TODO: add arguments for domain size to make it more input type agnostic
         lapl = Laplace(size(u)[1], size(u)[2], u.grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
 
         # initialise boundary data cache
@@ -119,7 +120,6 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     d2dy2!(U[3], d2Wdy2)
 
     # compute nonlinear components
-    # FIXME: the modification of inputs of the IFFT is the problem!
     IFFT(v, U[2], ifft_tmp1)
     IFFT(w, U[3], ifft_tmp2)
     IFFT(dudz, dUdz, ifft_tmp3)
@@ -164,12 +164,9 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     # calculate residual
     @views @inbounds begin
         for ny in 1:size(U[1])[1]
-            # res[1][ny, :, :] .= dUdt[ny, :, :] .+ U[2][ny, :, :].*f.ū_data[2][ny] .- f.Re_recip.*(d2Udy2[ny, :, :] .+ d2Udz2[ny, :, :]) .- f.Ro.*U[2][ny, :, :] .+ V_dUdy[ny, :, :] .+ W_dUdz[ny, :, :]
-            # res[2][ny, :, :] .= dVdt[ny, :, :] .- f.Re_recip.*(d2Vdy2[ny, :, :] .+ d2Vdz2[ny, :, :]) .+ f.Ro.*U[1][ny, :, :] .+ V_dVdy[ny, :, :] .+ W_dVdz[ny, :, :] .+ dPdy[ny, :, :]
-            # res[3][ny, :, :] .= dWdt[ny, :, :] .- f.Re_recip.*(d2Wdy2[ny, :, :] .+ d2Wdz2[ny, :, :]) .+ V_dWdy[ny, :, :] .+ W_dWdz[ny, :, :] .+ dPdz[ny, :, :]
-            res[1][ny, :, :] .= 0.0
-            res[2][ny, :, :] .= dPdy[ny, :, :]
-            res[3][ny, :, :] .= dPdz[ny, :, :]
+            res[1][ny, :, :] .= dUdt[ny, :, :] .+ U[2][ny, :, :].*f.ū_data[2][ny] .- f.Re_recip.*(d2Udy2[ny, :, :] .+ d2Udz2[ny, :, :]) .- f.Ro.*U[2][ny, :, :] .+ V_dUdy[ny, :, :] .+ W_dUdz[ny, :, :]
+            res[2][ny, :, :] .= dVdt[ny, :, :] .- f.Re_recip.*(d2Vdy2[ny, :, :] .+ d2Vdz2[ny, :, :]) .+ f.Ro.*U[1][ny, :, :] .+ V_dVdy[ny, :, :] .+ W_dVdz[ny, :, :] .+ dPdy[ny, :, :]
+            res[3][ny, :, :] .= dWdt[ny, :, :] .- f.Re_recip.*(d2Wdy2[ny, :, :] .+ d2Wdz2[ny, :, :]) .+ V_dWdy[ny, :, :] .+ W_dWdz[ny, :, :] .+ dPdz[ny, :, :]
         end
     end
 
@@ -187,6 +184,7 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     return res
 end
 
+# TODO: update cache for the new IFFT method
 function localresidual!(res::V, U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign spectral aliases
     dUdt = cache.spec_cache[1]
@@ -215,12 +213,9 @@ function localresidual!(res::V, U::V, cache::Cache{T, S}) where {T, S, V<:Abstra
     # calculate local residual
     @views @inbounds begin
         for ny in 1:size(U[1])[1]
-            # res[1][ny, :, :] .= dUdt[ny, :, :] .+ U[2][ny, :, :].*dūdy[ny] .- cache.Re_recip.*(d2Udy2[ny, :, :] .+ d2Udz2[ny, :, :]) .- cache.Ro.*U[2][ny, :, :] .+ V_dUdy[ny, :, :] .+ W_dUdz[ny, :, :]
-            # res[2][ny, :, :] .= dVdt[ny, :, :] .- cache.Re_recip.*(d2Vdy2[ny, :, :] .+ d2Vdz2[ny, :, :]) .+ cache.Ro.*U[1][ny, :, :] .+ V_dVdy[ny, :, :] .+ W_dVdz[ny, :, :] .+ dPdy[ny, :, :]
-            # res[3][ny, :, :] .= dWdt[ny, :, :] .- cache.Re_recip.*(d2Wdy2[ny, :, :] .+ d2Wdz2[ny, :, :]) .+ V_dWdy[ny, :, :] .+ W_dWdz[ny, :, :] .+ dPdz[ny, :, :]
-            res[1][ny, :, :] .= 0.0
-            res[2][ny, :, :] .= 0.0
-            res[3][ny, :, :] .= 0.0
+            res[1][ny, :, :] .= dUdt[ny, :, :] .+ U[2][ny, :, :].*dūdy[ny] .- cache.Re_recip.*(d2Udy2[ny, :, :] .+ d2Udz2[ny, :, :]) .- cache.Ro.*U[2][ny, :, :] .+ V_dUdy[ny, :, :] .+ W_dUdz[ny, :, :]
+            res[2][ny, :, :] .= dVdt[ny, :, :] .- cache.Re_recip.*(d2Vdy2[ny, :, :] .+ d2Vdz2[ny, :, :]) .+ cache.Ro.*U[1][ny, :, :] .+ V_dVdy[ny, :, :] .+ W_dVdz[ny, :, :] .+ dPdy[ny, :, :]
+            res[3][ny, :, :] .= dWdt[ny, :, :] .- cache.Re_recip.*(d2Wdy2[ny, :, :] .+ d2Wdz2[ny, :, :]) .+ V_dWdy[ny, :, :] .+ W_dWdz[ny, :, :] .+ dPdz[ny, :, :]
         end
     end
 
