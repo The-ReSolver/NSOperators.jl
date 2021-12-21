@@ -1,13 +1,13 @@
 # This file contains the definitions required to project a given vector into
 # a divergence free sub-space.
 
-export Project!
+export Projector!
 
-struct Project!{S}
+struct Projector!{S}
     spec_cache::Vector{S}
     lapl::Laplace
 
-    function Project!(U::S, u::P) where {T, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
+    function Projector!(U::S, u::P) where {T, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
         # check sizes of arguments are compatible
         (size(u)[1], (size(u)[2] >> 1) + 1, size(u)[3]) == size(U) || throw(ArgumentError("Arrays are not compatible sizes!"))
 
@@ -22,7 +22,7 @@ struct Project!{S}
     end
 end
 
-function (f::Project!{S})(U::V) where {T, S, V<:AbstractVector{S}}
+function (f::Projector!{S})(U::V) where {T, S, V<:AbstractVector{S}}
     # assign aliases
     ϕ = f.spec_cache[1]
     dϕdy = f.spec_cache[2]

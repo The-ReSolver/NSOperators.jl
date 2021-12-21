@@ -16,11 +16,11 @@
     u = PhysicalField(grid)
 
     # construct projection type
-    @test typeof(Project!(U, u)) == Project!{SpectralField{Ny, Nz, Nt, typeof(grid), Float64, Array{ComplexF64, 3}}}
+    @test typeof(Projector!(U, u)) == Projector!{SpectralField{Ny, Nz, Nt, typeof(grid), Float64, Array{ComplexF64, 3}}}
 
     # catch errors
-    @test_throws ArgumentError Project!(SpectralField(Grid(rand(Float64, Ny - 1), Nz, Nt, Dy, Dy2, ws, ω, β)), u)
-    @test_throws MethodError Project!(U, rand(Float64, (Ny, Nz)))
+    @test_throws ArgumentError Projector!(SpectralField(Grid(rand(Float64, Ny - 1), Nz, Nt, Dy, Dy2, ws, ω, β)), u)
+    @test_throws MethodError Projector!(U, rand(Float64, (Ny, Nz)))
 end
 
 @testset "Leray projection calculation  " begin
@@ -42,10 +42,10 @@ end
     u = PhysicalField(grid)
 
     # construct projection object
-    project! = Project!(U[1], u)
+    projector! = Projector!(U[1], u)
 
     # perform projection
-    project!(U)
+    projector!(U)
 
     # initialise derivative fields
     dUdy = VectorField(grid)
