@@ -171,15 +171,11 @@ function (f::_LocalResidual!{T, S, P})(res::V, U::V) where {T, S, P, V<:Abstract
     end
 
     # calculate mean constraint
-    # TODO: fix mean constraint part
-    # @views begin
-    #     # res[1][:, 1, 1] .= f.ū_data[3] .- V_dUdy[:, 1, 1] .- W_dUdz[:, 1, 1]
-    #     # res[2][:, 1, 1] .= f.Ro.*f.ū_data[1] .- f.dp̄dy .- V_dVdy[:, 1, 1] .- W_dVdz[:, 1, 1]
-    #     # res[3][:, 1, 1] .= .-V_dWdy[:, 1, 1] .- W_dWdz[:, 1, 1]
-    #     res[1][:, 1, 1] .= 0.0
-    #     res[2][:, 1, 1] .= 0.0
-    #     res[3][:, 1, 1] .= 0.0
-    # end
+    @views begin
+        res[1][:, 1, 1] .= f.Re_recip.*f.ū_data[3] .- V_dUdy[:, 1, 1] .- W_dUdz[:, 1, 1]
+        res[2][:, 1, 1] .= (-f.Ro).*f.ū_data[1] .- f.dp̄dy .- V_dVdy[:, 1, 1] .- W_dVdz[:, 1, 1]
+        res[3][:, 1, 1] .= .-V_dWdy[:, 1, 1] .- W_dWdz[:, 1, 1]
+    end
 
     return res
 end

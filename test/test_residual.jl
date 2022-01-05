@@ -55,6 +55,9 @@ end
     dūdy_fun(y) = 1.0
     d2ūdy2_fun(y) = 0.0
     dp̄dy_fun(y) = 2*y
+    r_mean_x_fun(y) = -(π/2)*(cos(2*π*y) + cos(π*y))*0.56515910399 # modified bessel function of the first kind, first order evaluated at 1!
+    r_mean_y_fun(y) = (π/2)*sin(π*y)*(cos(π*y) + 1) - y*(Ro + 2)
+    r_mean_z_fun(y) = 0.0
     u_fun(y, z, t) = sin(π*y)*exp(cos(z))*sin(t)
     v_fun(y, z, t) = (cos(π*y) + 1)*cos(z)*sin(t)
     w_fun(y, z, t) = π*sin(π*y)*sin(z)*sin(t)
@@ -117,26 +120,21 @@ end
     res_spec[2] .+= dPdy
     res_spec[3] .+= dPdz
 
-    # update physical residual array with pressure
-    IFFT!(res_phys, res_spec, VectorField(grid))
+    # compute the mean constraint vectors
+    r_mean_x = [r_mean_x_fun(y[i]) for i in 1:Ny]
+    r_mean_y = [r_mean_y_fun(y[i]) for i in 1:Ny]
+    r_mean_z = [r_mean_z_fun(y[i]) for i in 1:Ny]
+
+    # include mean constraint in residual fields
+    @views begin
+        res_spec[1][:, 1, 1] = r_mean_x
+        res_spec[2][:, 1, 1] = r_mean_y
+        res_spec[3][:, 1, 1] = r_mean_z
+    end
 
     # calculate local residual type
     local_residual! = NSOperators._LocalResidual!(U[1], u[1], ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)
     res_calc = VectorField(grid)
     local_residual!(res_calc, U)
     @test res_calc ≈ res_spec
-
-    # res_calc_phys = VectorField(grid; field_type=:Physical)
-    # IFFT!(res_calc_phys, res_calc, VectorField(grid))
-    # using Plots
-    # ENV["GKSwstype"] = "nul"
-    # using Printf
-    # for nt in 2:3:32
-    #     @views begin
-    #         p1 = contour(points(grid)[2], sort(points(grid)[1]), res_phys[3][:, :, nt])
-    #         p2 = contour(points(grid)[2], sort(points(grid)[1]), res_calc_phys[3][:, :, nt])
-    #     end
-    #     plot(p1, p2, layour=(1, 2), legend=false)
-    #     savefig("./plots/lrz_Nt=$(string(nt)).pdf")
-    # end
 end
