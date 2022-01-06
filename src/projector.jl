@@ -26,14 +26,14 @@ function (f::Projector!{S})(U::V) where {T, S, V<:AbstractVector{S}}
     ϕ = f.spec_cache[1]
     dϕdy = f.spec_cache[2]
     dϕdz = f.spec_cache[3]
-    dUdy = f.spec_cache[4]
-    dUdz = f.spec_cache[5]
+    dVdy = f.spec_cache[4]
+    dWdz = f.spec_cache[5]
     rhs = f.spec_cache[6]
 
     # compute rhs of poisson equation
-    ddy!(U[2], dUdy)
-    ddz!(U[3], dUdz)
-    rhs .= .-dUdy .- dUdz
+    ddy!(U[2], dVdy)
+    ddz!(U[3], dWdz)
+    rhs .= .-dVdy .- dWdz
 
     # solve poisson equation
     solve!(ϕ, f.lapl, rhs)
@@ -43,6 +43,8 @@ function (f::Projector!{S})(U::V) where {T, S, V<:AbstractVector{S}}
     ddz!(ϕ, dϕdz)
 
     # project original field
-    U[2] .-= dϕdy
-    U[3] .-= dϕdz
+    U[2] .+= dϕdy
+    U[3] .+= dϕdz
+
+    return U
 end
