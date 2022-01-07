@@ -74,8 +74,8 @@ end
     grid = Grid(y, Nz, Nt, Dy, Dy2, ws, ω, β)
 
     # initialise transforms
-    FFT! = FFTPlan!(grid)
-    IFFT! = IFFTPlan!(grid)
+    FFT! = FFTPlan!(grid; flags=FFTW.ESTIMATE)
+    IFFT! = IFFTPlan!(grid; flags=FFTW.ESTIMATE)
 
     # initialise mean vectors
     ū = [ū_fun(y[i]) for i in 1:Ny]

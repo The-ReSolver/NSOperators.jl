@@ -3,7 +3,6 @@
 
 export localresidual!
 
-# TODO: take mean data as spectral arrays (or learn broadcasting)
 struct _LocalResidual!{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
@@ -29,7 +28,6 @@ struct _LocalResidual!{T, S, P, BC, PLANS}
         IFFT = IFFTPlan!(U)
 
         # initialise laplace operator
-        # TODO: add arguments for domain size to make it more input type agnostic
         lapl = Laplace(size(u)[1], size(u)[2], u.grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
 
         # initialise boundary data cache
