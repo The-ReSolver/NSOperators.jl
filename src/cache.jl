@@ -2,9 +2,10 @@
 
 export Cache
 
-struct Cache{T, S, P, BC, PLANS}
+struct Cache{T, S, P, V, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
+    res_cache::V
     bc_cache::NTuple{2, BC}
     mean_data::NTuple{4, Vector{T}}
     plans::PLANS
@@ -18,8 +19,11 @@ struct Cache{T, S, P, BC, PLANS}
         (size(ū) == size(dūdy) && size(ū) == size(d2ūdy2)) || throw(ArgumentError("Vectors are not compatible sizes!"))
 
         # initialise cached arrays
-        spec_cache = [similar(U) for i in 1:27]
+        spec_cache = [similar(U) for i in 1:35]
         phys_cache = [similar(u) for i in 1:16]
+
+        # initialise residual cache
+        res_cache = VectorField(U.grid)
 
         # initialise transforms
         FFT! = FFTPlan!(u)
@@ -32,12 +36,11 @@ struct Cache{T, S, P, BC, PLANS}
         bc_cache = (Matrix{Complex{T}}(undef, size(U)[2], size(U)[3]),
                     Matrix{Complex{T}}(undef, size(U)[2], size(U)[3]))
 
-        args = (spec_cache, phys_cache, bc_cache,
-                (ū, dūdy, d2ūdy2), dp̄dy, (FFT!, IFFT!), lapl, 1/Re, Ro)
-        new{T, S, P, typeof(bc_cache[1]), typeof((FFT!, IFFT!))}(args...)
+        args = (spec_cache, phys_cache, res_cache, bc_cache,
+                (ū, dūdy, d2ūdy2, dp̄dy), (FFT!, IFFT!), lapl, 1/Re, Ro)
+        new{T, S, P, typeof(res_cache), typeof(bc_cache[1]), typeof((FFT!, IFFT!))}(args...)
     end
 end
-
 
 """
     Given a velocity field, update all variables stored in the cache such that
@@ -72,6 +75,14 @@ function (f::Cache{T, S})(U::V) where {T, S, V<:AbstractVector{S}}
     W_dWdz = f.spec_cache[25]
     dVdz_dWdy = f.spec_cache[26]
     dVdy_dWdz = f.spec_cache[27]
+    ifft_tmp1 = f.spec_cache[28]
+    ifft_tmp2 = f.spec_cache[29]
+    ifft_tmp3 = f.spec_cache[30]
+    ifft_tmp4 = f.spec_cache[31]
+    ifft_tmp5 = f.spec_cache[32]
+    ifft_tmp6 = f.spec_cache[33]
+    ifft_tmp7 = f.spec_cache[34]
+    ifft_tmp8 = f.spec_cache[35]
 
     # assign physical aliases
     v = f.phys_cache[1]
@@ -113,14 +124,14 @@ function (f::Cache{T, S})(U::V) where {T, S, V<:AbstractVector{S}}
     d2dy2!(U[3], d2Wdy2)
 
     # compute nonlinear components
-    IFFT(v, U[2])
-    IFFT(w, U[3])
-    IFFT(dudz, dUdz)
-    IFFT(dvdz, dVdz)
-    IFFT(dwdz, dWdz)
-    IFFT(dudy, dUdy)
-    IFFT(dvdy, dVdy)
-    IFFT(dwdy, dWdy)
+    IFFT(v, U[2], ifft_tmp1)
+    IFFT(w, U[3], ifft_tmp2)
+    IFFT(dudz, dUdz, ifft_tmp3)
+    IFFT(dvdz, dVdz, ifft_tmp4)
+    IFFT(dwdz, dWdz, ifft_tmp5)
+    IFFT(dudy, dUdy, ifft_tmp6)
+    IFFT(dvdy, dVdy, ifft_tmp7)
+    IFFT(dwdy, dWdy, ifft_tmp8)
     v_dudy .= v.*dudy
     w_dudz .= w.*dudz
     v_dvdy .= v.*dvdy
@@ -139,10 +150,9 @@ function (f::Cache{T, S})(U::V) where {T, S, V<:AbstractVector{S}}
     FFT(dVdy_dWdz, dvdy_dwdz)
 
     # compute rhs of pressure equation
-    poiss_rhs .= 2.0.*(dVdz_dWdy .- dVdy_dWdz) .- f.Ro.*dUdy
+    poiss_rhs .= -2.0.*(dVdz_dWdy .- dVdy_dWdz) .- f.Ro.*dUdy
 
     # extract boundary condition data
-    # TODO: make sure this doesn't assign any memory
     @views begin
         f.bc_cache[1] .= f.Re_recip.*d2Vdy2[1, :, :]
         f.bc_cache[2] .= f.Re_recip.*d2Vdy2[end, :, :]
@@ -155,5 +165,5 @@ function (f::Cache{T, S})(U::V) where {T, S, V<:AbstractVector{S}}
     ddy!(Pr, dPdy)
     ddz!(Pr, dPdz)
 
-    return U
+    return nothing
 end

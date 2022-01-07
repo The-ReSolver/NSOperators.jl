@@ -8,4 +8,5 @@ using Random
 using Test
 
 include("test_projector.jl")
+include("test_cache.jl")
 include("test_residual.jl")
