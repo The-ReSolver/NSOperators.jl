@@ -63,7 +63,7 @@ end
     Re = abs(rand())
     Ro = abs(rand())
     cache = Cache(U[1], u[1], rand(Ny), rand(Ny), rand(Ny), rand(Ny), Re, Ro)
-    NSOperators._update_vel!(U, cache)
+    update_v!(U, cache)
 
     # initialise fields for results
     dudt_fun(y, z, t) = sin(π*y)*exp(cos(z))*cos(t)
@@ -87,10 +87,8 @@ end
     w_dvdz_fun(y, z, t) = w_fun(y, z, t)*dvdz_fun(y, z, t)
     v_dwdy_fun(y, z, t) = v_fun(y, z, t)*dwdy_fun(y, z, t)
     w_dwdz_fun(y, z, t) = w_fun(y, z, t)*dwdz_fun(y, z, t)
-    # dvdz_dwdy_fun(y, z, t) = dvdz_fun(y, z, t)*dwdy_fun(y, z, t)
-    # dvdy_dwdz_fun(y, z, t) = dvdy_fun(y, z, t)*dwdz_fun(y, z, t)
-    dvdz_dwdy_fun(y, z, t) = -(π^2)*cos(π*y)*(cos(π*y) + 1)*(sin(z)^2)*(sin(t)^2)
-    dvdy_dwdz_fun(y, z, t) = -(π^2)*(sin(π*y)^2)*(cos(z)^2)*(sin(t)^2)
+    dvdz_dwdy_fun(y, z, t) = dvdz_fun(y, z, t)*dwdy_fun(y, z, t)
+    dvdy_dwdz_fun(y, z, t) = dvdy_fun(y, z, t)*dwdz_fun(y, z, t)
     dudt = PhysicalField(grid, dudt_fun)
     dvdt = PhysicalField(grid, dvdt_fun)
     dwdt = PhysicalField(grid, dwdt_fun)
@@ -210,8 +208,8 @@ end
     # initialise cache and update pressure field
     Re = abs(rand()); Ro = abs(rand())
     cache = Cache(U[1], u[1], rand(Ny), rand(Ny), rand(Ny), rand(Ny), Re, Ro)
-    NSOperators._update_vel!(U, cache)
-    NSOperators._update_p!(U, cache)
+    update_v!(U, cache)
+    update_p!(U, cache)
 
     # compute laplacian of pressure field
     P = cache.spec_cache[16]

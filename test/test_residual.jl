@@ -1,16 +1,13 @@
 @testset "Local residual calculation    " begin
     # initialise variables and arrays
-    Ny = 32
-    Nz = 32
-    Nt = 32
+    Ny = 32; Nz = 32; Nt = 32
     y = chebpts(Ny)
     Dy = chebdiff(Ny)
     Dy2 = chebddiff(Ny)
     ws = rand(Float64, Ny)
     ω = 1.0
     β = 1.0
-    Re = abs(randn())
-    Ro = abs(randn())
+    Re = abs(randn()); Ro = abs(randn())
 
     # initialise functions
     ū_fun(y) = y
@@ -96,7 +93,8 @@
 
     # calculate local residual type
     cache = Cache(U[1], u[1], ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)
-    cache(U)
+    update_v!(U, cache)
+    update_p!(U, cache)
     res_calc = NSOperators._localresidual!(U, cache)
     @test res_calc === cache.res_cache
     @test res_calc ≈ res_spec
