@@ -95,7 +95,11 @@
     cache = Cache(U[1], u[1], ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)
     update_v!(U, cache)
     update_p!(U, cache)
-    res_calc = NSOperators._localresidual!(U, cache)
-    @test res_calc === cache.res_cache
-    @test res_calc ≈ res_spec
+    res_calc = localresidual!(U, cache)
+    @test res_calc === (cache.spec_cache[36], cache.spec_cache[37], cache.spec_cache[38])
+    @test VectorField(res_calc...) ≈ res_spec
+end
+
+@testset "Residual gradient calculation " begin
+
 end

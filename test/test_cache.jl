@@ -24,11 +24,10 @@
     # initialise useful types
     spec_type = SpectralField{Ny, Nz, Nt, typeof(grid), Float64, Array{ComplexF64, 3}}
     phys_type = PhysicalField{Ny, Nz, Nt, typeof(grid), Float64, Array{Float64, 3}}
-    vec_type = VectorField{3, spec_type}
     plan_type = Tuple{FFTPlan!{Ny, Nz, Nt, FFTW.rFFTWPlan{Float64, -1, false, 3, Vector{Int}}}, IFFTPlan!{Ny, Nz, Nt, FFTW.rFFTWPlan{ComplexF64, 1, false, 3, Vector{Int}}}}
 
     # construct local residual
-    @test typeof(Cache(U, u, ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)) == Cache{Float64, spec_type, phys_type, vec_type, Matrix{Complex{Float64}}, plan_type}
+    @test typeof(Cache(U, u, ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)) == Cache{Float64, spec_type, phys_type, Matrix{Complex{Float64}}, plan_type}
 
     # catch errors
     @test_throws ArgumentError Cache(SpectralField(Grid(rand(Ny - 1), Nz, Nt, Dy, Dy2, ws, ω, β)), u, ū, dūdy, d2ūdy2, dp̄dy, Re, Ro)
