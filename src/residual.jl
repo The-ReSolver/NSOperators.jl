@@ -51,6 +51,6 @@ function _localresidual!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVecto
     return res
 end
 
-function ℜ(); end
+ℜ(cache::Cache) = LinearAlgebra.norm(cache.res_cache)^2
 
 function dℜ(); end
