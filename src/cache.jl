@@ -1,18 +1,18 @@
 # The file contains the definition for the global cache of the optimisation.
 
-export Cache, update_v!, update_p!
+export Cache, update_v!, update_p!, update_r!
 
 struct Cache{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
     bc_cache::NTuple{2, BC}
-    mean_data::NTuple{4, Vector{T}}
+    mean_data::NTuple{3, Vector{T}}
     plans::PLANS
     lapl::Laplace
     Re_recip::T
     Ro::T
 
-    function Cache(U::S, u::P, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, dp̄dy::Vector{T}, Re::T, Ro::T) where {T<:Real, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
+    function Cache(U::S, u::P, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, Re::T, Ro::T) where {T<:Real, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
         # check compatible sizes
         (size(u)[1], (size(u)[2] >> 1) + 1, size(u)[3]) == size(U) || throw(ArgumentError("Arrays are not compatible sizes!"))
         (size(ū) == size(dūdy) && size(ū) == size(d2ūdy2)) || throw(ArgumentError("Vectors are not compatible sizes!"))
@@ -33,7 +33,7 @@ struct Cache{T, S, P, BC, PLANS}
                     Matrix{Complex{T}}(undef, size(U)[2], size(U)[3]))
 
         args = (spec_cache, phys_cache, bc_cache,
-                (ū, dūdy, d2ūdy2, dp̄dy), (FFT!, IFFT!), lapl, 1/Re, Ro)
+                (ū, dūdy, d2ūdy2), (FFT!, IFFT!), lapl, 1/Re, Ro)
         new{T, S, P, typeof(bc_cache[1]), typeof((FFT!, IFFT!))}(args...)
     end
 end
@@ -140,7 +140,7 @@ function update_v!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     return
 end
 
-function update_p!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
+function update_p!(cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign aliases
     dUdy = cache.spec_cache[10]
     d2Vdy2 = cache.spec_cache[14]
@@ -150,16 +150,21 @@ function update_p!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     poiss_rhs = cache.spec_cache[19]
     dVdz_dWdy = cache.spec_cache[26]
     dVdy_dWdz = cache.spec_cache[27]
+    dūdy = cache.mean_data[2]
 
     # compute rhs of pressure equation
-    poiss_rhs .= -2.0.*(dVdz_dWdy .- dVdy_dWdz) .- cache.Ro.*dUdy
-    # poiss_rhs .= dVdz_dWdy .- dVdy_dWdz
+    @. poiss_rhs = -2.0*(dVdz_dWdy - dVdy_dWdz) - cache.Ro*dUdy
+    @views begin
+        @. poiss_rhs[:, 1, 1] -= cache.Ro*dūdy
+    end
 
     # extract boundary condition data
     @views begin
-        cache.bc_cache[1] .= cache.Re_recip.*d2Vdy2[1, :, :]
-        cache.bc_cache[2] .= cache.Re_recip.*d2Vdy2[end, :, :]
+        @. cache.bc_cache[1] = cache.Re_recip*d2Vdy2[1, :, :]
+        @. cache.bc_cache[2] = cache.Re_recip*d2Vdy2[end, :, :]
     end
+    cache.bc_cache[1][1, 1] = -cache.Ro
+    cache.bc_cache[2][1, 1] = cache.Ro
 
     # solve the pressure equation
     solve!(P, cache.lapl, poiss_rhs, cache.bc_cache)
