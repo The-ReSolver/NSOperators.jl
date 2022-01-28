@@ -1,7 +1,7 @@
 # This file contains the definitions required to compute the residual and
 # associated gradients of an incompressible velocity field.
 
-export localresidual!, ℜ, dℜ
+export localresidual!, ℜ, dℜ!
 
 function localresidual!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign spectral aliases
@@ -30,30 +30,26 @@ function localresidual!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector
     ū = cache.mean_data[1]
     dūdy = cache.mean_data[2]
     d2ūdy2 = cache.mean_data[3]
-    dp̄dy = cache.mean_data[4]
 
     # calculate local residual
-    @views @inbounds begin
-        for ny in 1:size(U[1])[1]
-            @. rx[ny, :, :] = dUdt[ny, :, :] + U[2][ny, :, :]*dūdy[ny] - cache.Re_recip*(d2Udy2[ny, :, :] + d2Udz2[ny, :, :]) - cache.Ro.*U[2][ny, :, :] + V_dUdy[ny, :, :] + W_dUdz[ny, :, :]
-            @. ry[ny, :, :] = dVdt[ny, :, :] - cache.Re_recip*(d2Vdy2[ny, :, :] + d2Vdz2[ny, :, :]) + cache.Ro*U[1][ny, :, :] + V_dVdy[ny, :, :] + W_dVdz[ny, :, :] + dPdy[ny, :, :]
-            @. rz[ny, :, :] = dWdt[ny, :, :] - cache.Re_recip*(d2Wdy2[ny, :, :] + d2Wdz2[ny, :, :]) + V_dWdy[ny, :, :] + W_dWdz[ny, :, :] + dPdz[ny, :, :]
-        end
-    end
+    @. rx = dUdt + U[2]*dūdy - cache.Re_recip*(d2Udy2 + d2Udz2) - cache.Ro*U[2] + V_dUdy + W_dUdz
+    @. ry = dVdt - cache.Re_recip*(d2Vdy2 + d2Vdz2) + cache.Ro*U[1] + V_dVdy + W_dVdz + dPdy
+    @. rz = dWdt - cache.Re_recip*(d2Wdy2 + d2Wdz2) + V_dWdy + W_dWdz + dPdz
 
     # calculate mean constraint
     @views begin
+        # NOTE: is d2ūdy2 operation creating a new vector???
         @. rx[:, 1, 1] = cache.Re_recip*d2ūdy2 - V_dUdy[:, 1, 1] - W_dUdz[:, 1, 1]
-        @. ry[:, 1, 1] = (-cache.Ro).*ū - dp̄dy - V_dVdy[:, 1, 1] - W_dVdz[:, 1, 1]
+        @. ry[:, 1, 1] = (-cache.Ro)*ū - dPdy[:, 1, 1] - V_dVdy[:, 1, 1] - W_dVdz[:, 1, 1]
         @. rz[:, 1, 1] = -V_dWdy[:, 1, 1] - W_dWdz[:, 1, 1]
     end
 
     return (rx, ry, rz)
 end
 
-ℜ(cache::Cache) = norm(cache.spec_cache[36])^2 + norm(cache.spec_cache[37])^2 + norm(cache.spec_cache[38])^2
+ℜ(cache::Cache) = 0.5*(norm(VectorField(cache.spec_cache[36], cache.spec_cache[37], cache.spec_cache[38]))^2)
 
-function dℜ!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
+function dℜ!(cache::Cache)
     # assign spectral aliases
     rx = cache.spec_cache[36]
     ry = cache.spec_cache[37]
@@ -86,13 +82,9 @@ function dℜ!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     dūdy = cache.mean_data[2]
 
     # calculate residual gradient
-    @views @inbounds begin
-        for ny in 1:size(U[1])[1]
-            @. dℜx[ny, :, :] = -drxdt[ny, :, :] - V_drxdy[ny, :, :] - W_drxdz[ny, :, :] - cache.Re_recip*(d2rxdy2[ny, :, :] + d2rxdz2[ny, :, :]) + rx[ny, :, :]*dūdy[ny] + cache.Ro*ry[ny, :, :]
-            @. dℜy[ny, :, :] = -drydt[ny, :, :] - V_drydy[ny, :, :] - W_drydz[ny, :, :] - cache.Re_recip*(d2rydy2[ny, :, :] + d2rydz2[ny, :, :]) - cache.Ro*rx[ny, :, :]  + rx_dUdy[ny, :, :] + ry_dVdy[ny, :, :] + rz_dWdy[ny, :, :]
-            @. dℜz[ny, :, :] = -drzdt[ny, :, :] - V_drzdy[ny, :, :] - W_drzdz[ny, :, :] - cache.Re_recip*(d2rzdy2[ny, :, :] + d2rzdz2[ny, :, :]) + rx_dUdz[ny, :, :] + ry_dVdz[ny, :, :] + rz_dWdz[ny, :, :]
-        end
-    end
+    @. dℜx = -drxdt - V_drxdy - W_drxdz - cache.Re_recip*(d2rxdy2 + d2rxdz2) + cache.Ro*ry                                         # NOTE: verified term-by-term
+    @. dℜy = -drydt - V_drydy - W_drydz - cache.Re_recip*(d2rydy2 + d2rydz2) + rx*dūdy - cache.Ro*rx + rx_dUdy + ry_dVdy + rz_dWdy # NOTE: verified term-by-term
+    @. dℜz = -drzdt - V_drzdy - W_drzdz - cache.Re_recip*(d2rzdy2 + d2rzdz2) + rx_dUdz + ry_dVdz + rz_dWdz                         # NOTE: verified term-by-term
 
     return (dℜx, dℜy, dℜz)
 end

@@ -5,7 +5,10 @@ using PoissonSolver
 using FFTW
 using LinearAlgebra
 using Random
+using BenchmarkTools
 using Test
+
+include("residualgradfd.jl")
 
 include("test_projector.jl")
 include("test_cache.jl")
