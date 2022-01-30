@@ -38,7 +38,7 @@ function localresidual!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector
 
     # calculate mean constraint
     @views begin
-        # NOTE: is d2ūdy2 operation creating a new vector???
+        # NOTE: is d2ūdy2 and ū operations creating a new vector???
         @. rx[:, 1, 1] = cache.Re_recip*d2ūdy2 - V_dUdy[:, 1, 1] - W_dUdz[:, 1, 1]
         @. ry[:, 1, 1] = (-cache.Ro)*ū - dPdy[:, 1, 1] - V_dVdy[:, 1, 1] - W_dVdz[:, 1, 1]
         @. rz[:, 1, 1] = -V_dWdy[:, 1, 1] - W_dWdz[:, 1, 1]
