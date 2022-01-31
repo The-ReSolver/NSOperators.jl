@@ -124,8 +124,7 @@ end
     # ū_fun(y) = y
     # dūdy_fun(y) = 1.0
     # d2ūdy2_fun(y) = 0.0
-    # dp̄dy_fun(y) = 2*y
-    # u_fun(y, z, t) = sin(π*y)*exp(cos(z))*sin(t)
+    # u_fun(y, z, t) = sin(π*y)*cos(z)*sin(t)
     # v_fun(y, z, t) = (cos(π*y) + 1)*cos(z)*sin(t)
     # w_fun(y, z, t) = π*sin(π*y)*sin(z)*sin(t)
 
@@ -142,7 +141,6 @@ end
     # ū = [ū_fun(y[i]) for i in 1:Ny]
     # dūdy = [dūdy_fun(y[i]) for i in 1:Ny]
     # d2ūdy2 = [d2ūdy2_fun(y[i]) for i in 1:Ny]
-    # dp̄dy = [dp̄dy_fun(y[i]) for i in 1:Ny]
 
     # # initialise fields
     # u = VectorField(PhysicalField(grid, u_fun),
@@ -151,12 +149,31 @@ end
     # U = VectorField(grid)
     # FFT!(U, u)
 
-    # # calculate local residual
+    # # calculate local reisudal
     # cache = Cache(U[1], u[1], ū, dūdy, d2ūdy2, Re, Ro)
     # update_v!(U, cache)
     # update_p!(cache)
     # localresidual!(U, cache)
-    # @test ℜ(cache) ≈ 117.6368700600077
+
+    # # pressure norm components
+    # dPdy = copy(cache.spec_cache[17])
+    # dPdz = copy(cache.spec_cache[18])
+    # lry_no_pr = copy(cache.spec_cache[37])
+    # lrz_no_pr = copy(cache.spec_cache[38])
+    # lry_no_pr .= lry_no_pr .- dPdy
+    # lrz_no_pr .= lrz_no_pr .- dPdz
+    # ∇P_norm = 0.5*(norm(VectorField(dPdy, dPdz))^2)
+    # NS_pressure_dot = dot(VectorField(lry_no_pr, lrz_no_pr), VectorField(dPdy, dPdz))
+
+    # println(ℜ(cache) - NS_pressure_dot - ∇P_norm)
+    # # println(NS_pressure_dot)
+    # # println(∇P_norm)
+    # # println(118.8299548630935) # NOTE: for u = sin(π*y)*exp(cos(z))*sin(t)
+    # # println(94.09344761580931) # NOTE: for u = sin(π*y)*cos(z)*sin(t)
+    # # println(7.50927) # NOTE: for u = sin(π*y)*cos(z)*sin(t), v = 0.0, w = 0.0
+    # # println(8.13049) # NOTE: for u = 0.0, v = (cos(π*y) + 1)*cos(z)*sin(t), w = 0.0
+    # # println(74.3528) # NOTE: for u = 0.0, v = 0.0, w = π*sin(π*y)*sin(z)*sin(t)
+    # # @test ℜ(cache) ≈ 117.6368700600077 + NS_pressure_dot + ∇P_norm
 end
 
 @testset "Residual gradient calculation " begin
