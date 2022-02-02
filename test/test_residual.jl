@@ -102,10 +102,24 @@
     drydy = SpectralField(grid)
     drzdz = SpectralField(grid)
     div_r = SpectralField(grid)
-    ddy!(res_spec[2], drydy)
-    ddz!(res_spec[3], drzdz)
+    ddy!(res_calc[2], drydy)
+    ddz!(res_calc[3], drzdz)
     div_r .= drydy .+ drzdz
     @test norm(div_r) < 1e-8
+
+    # boundary values
+    d2udy2_fun(y, z, t) = -(π^2)*sin(π*y)*exp(cos(z))*sin(t)
+    d2wdy2_fun(y, z, t) = -(π^3)*sin(π*y)*sin(z)*sin(t)
+    d2Udy2 = SpectralField(grid)
+    d2Wdy2 = SpectralField(grid)
+    FFT!(d2Udy2, PhysicalField(grid, d2udy2_fun))
+    FFT!(d2Wdy2, PhysicalField(grid, d2wdy2_fun))
+    @test res_calc[1][1, :, :] ≈ (-1/Re)*d2Udy2[1, :, :] atol=1e-6 # NOTE: tolerances is here to deal with zero arrays
+    @test res_calc[1][end, :, :] ≈ (-1/Re)*d2Udy2[end, :, :] atol=1e-6
+    @test res_calc[2][1, :, :] ≈ SpectralField(grid)[1, :, :] atol=1e-6
+    @test res_calc[2][end, :, :] ≈ SpectralField(grid)[end, :, :] atol=1e-6
+    @test res_calc[3][1, :, :] ≈ (-1/Re)*d2Wdy2[1, :, :] + dPdz[1, :, :]
+    @test res_calc[3][end, :, :] ≈ (-1/Re)*d2Wdy2[end, :, :] + dPdz[end, :, :]
 end
 
 @testset "Global reisudal calculation   " begin
@@ -124,7 +138,7 @@ end
     # ū_fun(y) = y
     # dūdy_fun(y) = 1.0
     # d2ūdy2_fun(y) = 0.0
-    # u_fun(y, z, t) = sin(π*y)*cos(z)*sin(t)
+    # u_fun(y, z, t) = sin(π*y)*exp(cos(z))*sin(t)
     # v_fun(y, z, t) = (cos(π*y) + 1)*cos(z)*sin(t)
     # w_fun(y, z, t) = π*sin(π*y)*sin(z)*sin(t)
 
@@ -178,7 +192,7 @@ end
 
 @testset "Residual gradient calculation " begin
     # # initialise grid
-    # Ny = 16; Nz = 16; Nt = 16
+    # Ny = 20; Nz = 20; Nt = 20
     # y = chebpts(Ny)
     # Dy = chebdiff(Ny)
     # Dy2 = chebddiff(Ny)
@@ -222,106 +236,118 @@ end
     # update_r!(cache)
     # grad_calc = VectorField(dℜ!(cache)...)
 
-    # # NOTE: V_dUdy
-    # # dudy_fun(y, z, t) = π*cos(π*y)*exp(cos(z))*sin(t)
-    # # dvdy_fun(y, z, t) = -π*sin(π*y)*cos(z)*sin(t)
-    # # d2udy2_fun(y, z, t) = -(π^2)*sin(π*y)*exp(cos(z))*sin(t)
-    # # v_dudy_sqrd_fun(y, z, t) = v_fun(y, z, t)*(dudy_fun(y, z, t)^2)
-    # # fun2(y, z, t) = -v_fun(y, z, t)*dvdy_fun(y, z, t)*dudy_fun(y, z, t) - (v_fun(y, z, t)^2)*d2udy2_fun(y, z, t)
-    # # V_dUdy_sqrd = SpectralField(grid)
-    # # field2 = SpectralField(grid)
-    # # FFT!(V_dUdy_sqrd, PhysicalField(grid, v_dudy_sqrd_fun))
-    # # FFT!(field2, PhysicalField(grid, fun2))
+    # display(round.(grad_calc[1][1, :, :]; digits=5))
+    # println()
+    # display(round.(grad_calc[2][1, :, :]; digits=5))
+    # println()
+    # display(round.(grad_calc[3][1, :, :]; digits=5))
+    # println()
+    # display(round.(grad_calc[1][end, :, :]; digits=5))
+    # println()
+    # display(round.(grad_calc[2][end, :, :]; digits=5))
+    # println()
+    # display(round.(grad_calc[3][end, :, :]; digits=5))
+    # println()
 
-    # # NOTE: W_dUdz
-    # # dudz_fun(y, z, t) = -sin(π*y)*sin(z)*exp(cos(z))*sin(t)
-    # # dwdz_fun(y, z, t) = π*sin(π*y)*cos(z)*sin(t)
-    # # d2udz2_fun(y, z, t) = sin(π*y)*((sin(z)^2) - cos(z))*exp(cos(z))*sin(t)
-    # # w_dudz_sqrd_fun(y, z, t) = w_fun(y, z, t)*(dudz_fun(y, z, t)^2)
-    # # fun2(y, z, t) = -w_fun(y, z, t)*dwdz_fun(y, z, t)*dudz_fun(y, z, t) - (w_fun(y, z, t)^2)*d2udz2_fun(y, z, t)
-    # # W_dUdz_sqrd = SpectralField(grid)
-    # # field2 = SpectralField(grid)
-    # # FFT!(W_dUdz_sqrd, PhysicalField(grid, w_dudz_sqrd_fun))
-    # # FFT!(field2, PhysicalField(grid, fun2))
+    # NOTE: V_dUdy
+    # dudy_fun(y, z, t) = π*cos(π*y)*exp(cos(z))*sin(t)
+    # dvdy_fun(y, z, t) = -π*sin(π*y)*cos(z)*sin(t)
+    # d2udy2_fun(y, z, t) = -(π^2)*sin(π*y)*exp(cos(z))*sin(t)
+    # v_dudy_sqrd_fun(y, z, t) = v_fun(y, z, t)*(dudy_fun(y, z, t)^2)
+    # fun2(y, z, t) = -v_fun(y, z, t)*dvdy_fun(y, z, t)*dudy_fun(y, z, t) - (v_fun(y, z, t)^2)*d2udy2_fun(y, z, t)
+    # V_dUdy_sqrd = SpectralField(grid)
+    # field2 = SpectralField(grid)
+    # FFT!(V_dUdy_sqrd, PhysicalField(grid, v_dudy_sqrd_fun))
+    # FFT!(field2, PhysicalField(grid, fun2))
 
-    # # NOTE: V_dVdy
-    # # d2vdy2_fun(y, z, t) = -(π^2)*cos(π*y)*cos(z)*sin(t)
-    # # fun2(y, z, t) = -(v_fun(y, z, t)^2)*d2vdy2_fun(y, z, t)
-    # # field2 = SpectralField(grid)
-    # # FFT!(field2, PhysicalField(grid, fun2))
+    # NOTE: W_dUdz
+    # dudz_fun(y, z, t) = -sin(π*y)*sin(z)*exp(cos(z))*sin(t)
+    # dwdz_fun(y, z, t) = π*sin(π*y)*cos(z)*sin(t)
+    # d2udz2_fun(y, z, t) = sin(π*y)*((sin(z)^2) - cos(z))*exp(cos(z))*sin(t)
+    # w_dudz_sqrd_fun(y, z, t) = w_fun(y, z, t)*(dudz_fun(y, z, t)^2)
+    # fun2(y, z, t) = -w_fun(y, z, t)*dwdz_fun(y, z, t)*dudz_fun(y, z, t) - (w_fun(y, z, t)^2)*d2udz2_fun(y, z, t)
+    # W_dUdz_sqrd = SpectralField(grid)
+    # field2 = SpectralField(grid)
+    # FFT!(W_dUdz_sqrd, PhysicalField(grid, w_dudz_sqrd_fun))
+    # FFT!(field2, PhysicalField(grid, fun2))
 
-    # # NOTE: W_dVdz
-    # # dvdz_fun(y, z, t) = -(cos(π*y) + 1)*sin(z)*sin(t)
-    # # dwdz_fun(y, z, t) = π*sin(π*y)*cos(z)*sin(t)
-    # # d2vdz2_fun(y, z, t) = -(cos(π*y) + 1)*cos(z)*sin(t)
-    # # w_dvdz_sqrd_fun(y, z, t) = w_fun(y, z, t)*(dvdz_fun(y, z, t)^2)
-    # # fun2(y, z, t) = -w_fun(y, z, t)*dwdz_fun(y, z, t)*dvdz_fun(y, z, t) - (w_fun(y, z, t)^2)*d2vdz2_fun(y, z, t)
-    # # W_dVdz_sqrd = SpectralField(grid)
-    # # field2 = SpectralField(grid)
-    # # FFT!(W_dVdz_sqrd, PhysicalField(grid, w_dvdz_sqrd_fun))
-    # # FFT!(field2, PhysicalField(grid, fun2))
+    # NOTE: V_dVdy
+    # d2vdy2_fun(y, z, t) = -(π^2)*cos(π*y)*cos(z)*sin(t)
+    # fun2(y, z, t) = -(v_fun(y, z, t)^2)*d2vdy2_fun(y, z, t)
+    # field2 = SpectralField(grid)
+    # FFT!(field2, PhysicalField(grid, fun2))
 
-    # # NOTE: V_dWdy
-    # # dwdy_fun(y, z, t) = (π^2)*cos(π*y)*sin(z)*sin(t)
-    # # dvdy_fun(y, z, t) = -π*sin(π*y)*cos(z)*sin(t)
-    # # d2wdy2_fun(y, z, t) = -(π^3)*sin(π*y)*sin(z)*sin(t)
-    # # v_dwdy_sqrd_fun(y, z, t) = v_fun(y, z, t)*(dwdy_fun(y, z, t)^2)
-    # # fun2(y, z, t) = -v_fun(y, z, t)*dvdy_fun(y, z, t)*dwdy_fun(y, z, t) - (v_fun(y, z, t)^2)*d2wdy2_fun(y, z, t)
-    # # V_dWdy_sqrd = SpectralField(grid)
-    # # field2 = SpectralField(grid)
-    # # FFT!(V_dWdy_sqrd, PhysicalField(grid, v_dwdy_sqrd_fun))
-    # # FFT!(field2, PhysicalField(grid, fun2))
+    # NOTE: W_dVdz
+    # dvdz_fun(y, z, t) = -(cos(π*y) + 1)*sin(z)*sin(t)
+    # dwdz_fun(y, z, t) = π*sin(π*y)*cos(z)*sin(t)
+    # d2vdz2_fun(y, z, t) = -(cos(π*y) + 1)*cos(z)*sin(t)
+    # w_dvdz_sqrd_fun(y, z, t) = w_fun(y, z, t)*(dvdz_fun(y, z, t)^2)
+    # fun2(y, z, t) = -w_fun(y, z, t)*dwdz_fun(y, z, t)*dvdz_fun(y, z, t) - (w_fun(y, z, t)^2)*d2vdz2_fun(y, z, t)
+    # W_dVdz_sqrd = SpectralField(grid)
+    # field2 = SpectralField(grid)
+    # FFT!(W_dVdz_sqrd, PhysicalField(grid, w_dvdz_sqrd_fun))
+    # FFT!(field2, PhysicalField(grid, fun2))
 
-    # # NOTE: W_dWdz
-    # # d2wdz2_fun(y, z, t) = -π*sin(π*y)*sin(z)*sin(t)
-    # # fun2(y, z, t) = -(w_fun(y, z, t)^2)*d2wdz2_fun(y, z, t)
-    # # field2 = SpectralField(grid)
-    # # FFT!(field2, PhysicalField(grid, fun2))
+    # NOTE: V_dWdy
+    # dwdy_fun(y, z, t) = (π^2)*cos(π*y)*sin(z)*sin(t)
+    # dvdy_fun(y, z, t) = -π*sin(π*y)*cos(z)*sin(t)
+    # d2wdy2_fun(y, z, t) = -(π^3)*sin(π*y)*sin(z)*sin(t)
+    # v_dwdy_sqrd_fun(y, z, t) = v_fun(y, z, t)*(dwdy_fun(y, z, t)^2)
+    # fun2(y, z, t) = -v_fun(y, z, t)*dvdy_fun(y, z, t)*dwdy_fun(y, z, t) - (v_fun(y, z, t)^2)*d2wdy2_fun(y, z, t)
+    # V_dWdy_sqrd = SpectralField(grid)
+    # field2 = SpectralField(grid)
+    # FFT!(V_dWdy_sqrd, PhysicalField(grid, v_dwdy_sqrd_fun))
+    # FFT!(field2, PhysicalField(grid, fun2))
 
-    # # esimate residual gradient using differencing
-    # comp = 1
-    # # grad_fd = VectorField(grid)
-    # # dℜ_fd!(U, cache, grad_fd; step=1e-9, comp=comp)
+    # NOTE: W_dWdz
+    # d2wdz2_fun(y, z, t) = -π*sin(π*y)*sin(z)*sin(t)
+    # fun2(y, z, t) = -(w_fun(y, z, t)^2)*d2wdz2_fun(y, z, t)
+    # field2 = SpectralField(grid)
+    # FFT!(field2, PhysicalField(grid, fun2))
+
+    # esimate residual gradient using differencing
+    # grad_fd = VectorField(grid)
+    # dℜ_fd!(U, cache, grad_fd; step=1e-6)
 
     # a = 2
-    # # display(round.(grad_fd[comp][a, 1:8, 1:10]; digits=5))
-    # # println()
+    # display(round.(grad_fd[comp][a, 1:8, 1:10]; digits=5))
+    # println()
     # display(round.(grad_calc[comp][a, 1:8, 1:10]; digits=5))
-    # # println()
-    # # display(round.(field2[a, 1:8, 1:10]; digits=5))
-    # # @test VectorField(grad_calc...) ≈ grad_fd
+    # println()
+    # display(round.(field2[a, 1:8, 1:10]; digits=5))
+    # @test VectorField(grad_calc...) ≈ grad_fd
 
-    # # IFFT! = IFFTPlan!(grid; flags=FFTW.ESTIMATE)
-    # # grad_fd_phys = VectorField(grid; field_type=:Physical)
-    # # IFFT!(grad_fd_phys, grad_fd, VectorField(grid))
-    # # grad_calc_phys = VectorField(grid; field_type=:Physical)
-    # # IFFT!(grad_calc_phys, grad_calc, VectorField(grid))
+    # IFFT! = IFFTPlan!(grid; flags=FFTW.ESTIMATE)
+    # grad_fd_phys = VectorField(grid; field_type=:Physical)
+    # grad_calc_phys = VectorField(grid; field_type=:Physical)
+    # IFFT!(grad_fd_phys, grad_fd, VectorField(grid))
+    # IFFT!(grad_calc_phys, grad_calc, VectorField(grid))
 
-    # # using Plots
-    # # ENV["GKSwstype"] = "nul"
-    # # using Printf
-    # # for nt in 1:Nt
-    # #     @views begin
-    # #         p1 = contour(points(grid)[2], sort(points(grid)[1]), grad_fd_phys[1][:, :, nt])
-    # #         p2 = contour(points(grid)[2], sort(points(grid)[1]), grad_calc_phys[1][:, :, nt])
-    # #     end
-    # #     plot(p1, p2, layour=(1, 2), legend=false)
-    # #     savefig("./plots/dRx_Nt=$(string(nt)).pdf")
-    # # end
-    # # for nt in 1:Nt
-    # #     @views begin
-    # #         p1 = contour(points(grid)[2], sort(points(grid)[1]), grad_fd_phys[2][:, :, nt])
-    # #         p2 = contour(points(grid)[2], sort(points(grid)[1]), grad_calc_phys[2][:, :, nt])
-    # #     end
-    # #     plot(p1, p2, layour=(1, 2), legend=false)
-    # #     savefig("./plots/dRy_Nt=$(string(nt)).pdf")
-    # # end
-    # # for nt in 1:Nt
-    # #     @views begin
-    # #         p1 = contour(points(grid)[2], sort(points(grid)[1]), grad_fd_phys[3][:, :, nt])
-    # #         p2 = contour(points(grid)[2], sort(points(grid)[1]), grad_calc_phys[3][:, :, nt])
-    # #     end
-    # #     plot(p1, p2, layour=(1, 2), legend=false)
-    # #     savefig("./plots/dRz_Nt=$(string(nt)).pdf")
-    # # end
+    # using Plots\
+    # ENV["GKSwstype"] = "nul"
+    # using Printf
+    # for nt in 1:Nt
+    #     @views begin
+    #         p1 = contour(points(grid)[2], sort(points(grid)[1]), grad_fd_phys[1][:, :, nt])
+    #         p2 = contour(points(grid)[2], sort(points(grid)[1]), grad_calc_phys[1][:, :, nt])
+    #     end
+    #     plot(p1, p2, layour=(1, 2), legend=false)
+    #     savefig("./plots/dRx_Nt=$(string(nt)).pdf")
+    # end
+    # for nt in 1:Nt
+    #     @views begin
+    #         p1 = contour(points(grid)[2], sort(points(grid)[1]), grad_fd_phys[2][:, :, nt])
+    #         p2 = contour(points(grid)[2], sort(points(grid)[1]), grad_calc_phys[2][:, :, nt])
+    #     end
+    #     plot(p1, p2, layour=(1, 2), legend=false)
+    #     savefig("./plots/dRy_Nt=$(string(nt)).pdf")
+    # end
+    # for nt in 1:Nt
+    #     @views begin
+    #         p1 = contour(points(grid)[2], sort(points(grid)[1]), grad_fd_phys[3][:, :, nt])
+    #         p2 = contour(points(grid)[2], sort(points(grid)[1]), grad_calc_phys[3][:, :, nt])
+    #     end
+    #     plot(p1, p2, layour=(1, 2), legend=false)
+    #     savefig("./plots/dRz_Nt=$(string(nt)).pdf")
+    # end
 end
