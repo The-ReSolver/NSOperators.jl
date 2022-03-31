@@ -14,8 +14,8 @@ struct Cache{T, S, P, BC, PLANS}
 
     function Cache(U::S, u::P, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, Re::T, Ro::T) where {T<:Real, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
         # check compatible sizes
-        (size(u)[1], (size(u)[2] >> 1) + 1, size(u)[3]) == size(U) || throw(ArgumentError("Arrays are not compatible sizes!"))
-        (size(ū) == size(dūdy) && size(ū) == size(d2ūdy2)) || throw(ArgumentError("Vectors are not compatible sizes!"))
+        U.grid == u.grid || throw(ArgumentError("Fields are on different grids!"))
+        (size(U.grid.y) == size(ū) && size(U.grid.y) == size(dūdy) && size(U.grid.y) == size(d2ūdy2)) || throw(ArgumentError("Mean data on different grids!"))
 
         # initialise cached arrays
         spec_cache = [similar(U) for i in 1:69]
