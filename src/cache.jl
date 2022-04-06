@@ -2,6 +2,7 @@
 
 export Cache, update_v!, update_p!, update_r!
 
+# TODO: can the typing of this struct be simplified to only include the information that is absolutely necessary
 struct Cache{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
@@ -37,6 +38,9 @@ struct Cache{T, S, P, BC, PLANS}
         new{T, S, P, typeof(bc_cache[1]), typeof((FFT!, IFFT!))}(args...)
     end
 end
+
+# TODO: can I create methods for grid the fields without having to call them explicitely?
+Cache(grid::G, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, Re::T, Ro::T) where {G, T<:Real} = Cache(SpectralField(grid), PhysicalField(grid), ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, Re::T, Ro::T)
 
 function update_v!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign spectral aliases

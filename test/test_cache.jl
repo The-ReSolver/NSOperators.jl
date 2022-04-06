@@ -24,6 +24,7 @@
 
     # construct local residual
     @test typeof(Cache(U, u, ū, dūdy, d2ūdy2, Re, Ro)) == Cache{Float64, spec_type, phys_type, Matrix{Complex{Float64}}, plan_type}
+    @test typeof(Cache(grid, ū, dūdy, d2ūdy2, Re, Ro)) == Cache{Float64, spec_type, phys_type, Matrix{Complex{Float64}}, plan_type}
 
     # catch errors
     @test_throws ArgumentError Cache(SpectralField(Grid(rand(Ny - 1), Nz, Nt, Dy, Dy2, ws, ω, β)), u, ū, dūdy, d2ūdy2, Re, Ro)
