@@ -20,7 +20,7 @@
     # initialise useful types
     spec_type = SpectralField{Ny, Nz, Nt, typeof(grid), Float64, Array{ComplexF64, 3}}
     phys_type = PhysicalField{Ny, Nz, Nt, typeof(grid), Float64, Array{Float64, 3}}
-    plan_type = Tuple{FFTPlan!{Ny, Nz, Nt, FFTW.rFFTWPlan{Float64, -1, false, 3, Vector{Int}}}, IFFTPlan!{Ny, Nz, Nt, FFTW.rFFTWPlan{ComplexF64, 1, false, 3, Vector{Int}}}}
+    plan_type = Tuple{typeof(FFTPlan!(grid; timelimit=0.1)), typeof(IFFTPlan!(grid; timelimit=0.1))}
 
     # construct local residual
     @test typeof(Cache(U, u, ū, dūdy, d2ūdy2, Re, Ro)) == Cache{Float64, spec_type, phys_type, Matrix{Complex{Float64}}, plan_type}
@@ -50,7 +50,7 @@ end
                     PhysicalField(grid, v_fun),
                     PhysicalField(grid, w_fun))
     U = VectorField(grid)
-    FFT! = FFTPlan!(grid; flags=FFTW.ESTIMATE)
+    FFT! = FFTPlan!(grid; flags=ESTIMATE)
     FFT!(U, u)
     Re = abs(rand())
     Ro = abs(rand())
@@ -199,7 +199,7 @@ end
                     PhysicalField(grid, v_fun),
                     PhysicalField(grid, w_fun))
     U = VectorField(grid)
-    FFT! = FFTPlan!(grid; flags=FFTW.ESTIMATE)
+    FFT! = FFTPlan!(grid; flags=ESTIMATE)
     FFT!(U, u)
 
     # initialise cache and update pressure field
@@ -255,7 +255,7 @@ end
     #                 PhysicalField(grid, v_fun),
     #                 PhysicalField(grid, w_fun))
     # U = VectorField(grid)
-    # FFT! = FFTPlan!(grid; flags=FFTW.ESTIMATE)
+    # FFT! = FFTPlan!(grid; flags=ESTIMATE)
     # FFT!(U, u)
     # Re = abs(rand())
     # Ro = abs(rand())

@@ -65,7 +65,7 @@ version = "3.3.10+0"
 
 [[Fields]]
 deps = ["ChebUtils", "FFTW", "LinearAlgebra", "Random", "Test"]
-git-tree-sha1 = "b15ec64dc501b6915d61e20282709cff15577eb1"
+git-tree-sha1 = "e921485679fd6d5c13273bdd05ab949889cb45e2"
 repo-rev = "main"
 repo-url = "https://github.com/The-Resolver/Fields.jl"
 uuid = "54c0c897-3bff-4ba2-acae-d4c1acf2c14a"
@@ -145,8 +145,8 @@ deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markd
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[PoissonSolver]]
-deps = ["ChebUtils", "FFTW", "Fields", "LinearAlgebra", "Random", "Test"]
-git-tree-sha1 = "dedd378345ff05f62b39c58b39da5522670d18ea"
+deps = ["ChebUtils", "Fields", "LinearAlgebra", "Random", "Test"]
+git-tree-sha1 = "f580b4b53cb69d217fb9b9dfd216eca3f29f3313"
 repo-rev = "main"
 repo-url = "https://github.com/The-Resolver/PoissonSolver.jl"
 uuid = "333ac5fb-9ca8-4109-ae2c-88ac1dd5ecab"
@@ -163,8 +163,8 @@ deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [[Projector]]
-deps = ["ChebUtils", "FFTW", "Fields", "LinearAlgebra", "PoissonSolver", "Test"]
-git-tree-sha1 = "96556398685e53b018684d96985c45c72aa5788d"
+deps = ["ChebUtils", "Fields", "LinearAlgebra", "PoissonSolver", "Test"]
+git-tree-sha1 = "a9306b1be05c23b3e6a79b461a3176bc2a4a92a4"
 repo-rev = "main"
 repo-url = "https://github.com/The-ReSolver/Projector.jl.git"
 uuid = "abfb4c27-6a5b-4fca-8a0e-91ede93db49a"

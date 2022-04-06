@@ -32,7 +32,7 @@
     grid = Grid(y, Nz, Nt, Dy, Dy2, ws, ω, β)
 
     # initialise transforms
-    FFT! = FFTPlan!(grid; flags=FFTW.ESTIMATE)
+    FFT! = FFTPlan!(grid; flags=ESTIMATE)
 
     # initialise mean vectors
     ū = [ū_fun(y[i]) for i in 1:Ny]
@@ -149,7 +149,7 @@ end
     # grid = Grid(y, Nz, Nt, Dy, Dy2, ws, ω, β)
 
     # # initialise transforms
-    # FFT! = FFTPlan!(grid; flags=FFTW.ESTIMATE)
+    # FFT! = FFTPlan!(grid; flags=ESTIMATE)
 
     # # initialise mean vectors
     # ū = [ū_fun(y[i]) for i in 1:Ny]
@@ -202,7 +202,7 @@ end
     # grid = Grid(y, Nz, Nt, Dy, Dy2, ws, ω, β)
 
     # # initialise transform plans
-    # FFT! = FFTPlan!(grid; flags=FFTW.ESTIMATE)
+    # FFT! = FFTPlan!(grid; flags=ESTIMATE)
 
     # # initialise fluctuation velocity field
     # u_fun(y, z, t) = sin(π*y)*exp(cos(z))*sin(t)
@@ -317,7 +317,7 @@ end
     # display(round.(field2[a, 1:8, 1:10]; digits=5))
     # @test VectorField(grad_calc...) ≈ grad_fd
 
-    # IFFT! = IFFTPlan!(grid; flags=FFTW.ESTIMATE)
+    # IFFT! = IFFTPlan!(grid; flags=ESTIMATE)
     # grad_fd_phys = VectorField(grid; field_type=:Physical)
     # grad_calc_phys = VectorField(grid; field_type=:Physical)
     # IFFT!(grad_fd_phys, grad_fd, VectorField(grid))
