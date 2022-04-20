@@ -1,7 +1,5 @@
 module NSOperators
 
-using LinearAlgebra
-
 using Fields
 using PoissonSolver
 
