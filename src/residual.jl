@@ -1,8 +1,6 @@
 # This file contains the definitions required to compute the residual and
 # associated gradients of an incompressible velocity field.
 
-export localresidual!, ℜ, dℜ!
-
 function localresidual!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign spectral aliases
     dUdt = cache.spec_cache[1]

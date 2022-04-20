@@ -1,8 +1,7 @@
 # The file contains the definition for the global cache of the optimisation.
 
-export Cache, update_v!, update_p!, update_r!
-
 # TODO: can the typing of this struct be simplified to only include the information that is absolutely necessary
+#       i.e. simplify the type information to reduce redundancy as much as possible
 struct Cache{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
