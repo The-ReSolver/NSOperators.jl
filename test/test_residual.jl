@@ -95,8 +95,8 @@
     update_v!(U, cache)
     update_p!(cache)
     res_calc = localresidual!(U, cache)
-    @test res_calc === (cache.spec_cache[36], cache.spec_cache[37], cache.spec_cache[38])
-    @test VectorField(res_calc...) ≈ res_spec
+    @test res_calc === VectorField(cache.spec_cache[36], cache.spec_cache[37], cache.spec_cache[38])
+    @test res_calc ≈ res_spec
 
     # divergence
     drydy = SpectralField(grid)
@@ -234,7 +234,7 @@ end
     # update_p!(cache)
     # localresidual!(U, cache)
     # update_r!(cache)
-    # grad_calc = VectorField(dℜ!(cache)...)
+    # grad_calc = dℜ!(cache)
 
     # display(round.(grad_calc[1][1, :, :]; digits=5))
     # println()

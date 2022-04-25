@@ -42,7 +42,7 @@ function localresidual!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector
         @. rz[:, 1, 1] = -V_dWdy[:, 1, 1] - W_dWdz[:, 1, 1]
     end
 
-    return (rx, ry, rz)
+    return VectorField(rx, ry, rz)
 end
 
 ℜ(cache::Cache) = 0.5*(norm(VectorField(cache.spec_cache[36], cache.spec_cache[37], cache.spec_cache[38]))^2)
@@ -84,5 +84,5 @@ function dℜ!(cache::Cache)
     @. dℜy = -drydt - V_drydy - W_drydz - cache.Re_recip*(d2rydy2 + d2rydz2) + rx*dūdy - cache.Ro*rx + rx_dUdy + ry_dVdy + rz_dWdy # NOTE: verified term-by-term
     @. dℜz = -drzdt - V_drzdy - W_drzdz - cache.Re_recip*(d2rzdy2 + d2rzdz2) + rx_dUdz + ry_dVdz + rz_dWdz                         # NOTE: verified term-by-term
 
-    return (dℜx, dℜy, dℜz)
+    return VectorField(dℜx, dℜy, dℜz)
 end
