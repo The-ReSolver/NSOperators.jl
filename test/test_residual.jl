@@ -95,7 +95,9 @@
     update_v!(U, cache)
     update_p!(cache)
     res_calc = localresidual!(U, cache)
-    @test res_calc === VectorField(cache.spec_cache[36], cache.spec_cache[37], cache.spec_cache[38])
+    @test res_calc[1] === cache.spec_cache[36]
+    @test res_calc[2] === cache.spec_cache[37]
+    @test res_calc[3] === cache.spec_cache[38]
     @test res_calc ≈ res_spec
 
     # divergence
@@ -105,7 +107,7 @@
     ddy!(res_calc[2], drydy)
     ddz!(res_calc[3], drzdz)
     div_r .= drydy .+ drzdz
-    @test norm(div_r) < 1e-8
+    @test norm(div_r) < 5e-8
 
     # boundary values
     d2udy2_fun(y, z, t) = -(π^2)*sin(π*y)*exp(cos(z))*sin(t)
