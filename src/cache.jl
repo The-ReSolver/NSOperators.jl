@@ -98,48 +98,57 @@ function update_v!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     IFFT! = cache.plans[2]
 
     # compute derivatives
-    ddt!(U[1], dUdt)
-    ddt!(U[2], dVdt)
-    ddt!(U[3], dWdt)
-    ddz!(U[1], dUdz)
-    ddz!(U[2], dVdz)
-    ddz!(U[3], dWdz)
-    d2dz2!(U[1], d2Udz2)
-    d2dz2!(U[2], d2Vdz2)
-    d2dz2!(U[3], d2Wdz2)
-    ddy!(U[1], dUdy)
-    ddy!(U[2], dVdy)
-    ddy!(U[3], dWdy)
-    d2dy2!(U[1], d2Udy2)
-    d2dy2!(U[2], d2Vdy2)
-    d2dy2!(U[3], d2Wdy2)
+    @sync begin
+        Base.Threads.@spawn ddt!(U[1], dUdt)
+        Base.Threads.@spawn ddt!(U[2], dVdt)
+        Base.Threads.@spawn ddt!(U[3], dWdt)
+        Base.Threads.@spawn ddz!(U[1], dUdz)
+        Base.Threads.@spawn ddz!(U[2], dVdz)
+        Base.Threads.@spawn ddz!(U[3], dWdz)
+        Base.Threads.@spawn d2dz2!(U[1], d2Udz2)
+        Base.Threads.@spawn d2dz2!(U[2], d2Vdz2)
+        Base.Threads.@spawn d2dz2!(U[3], d2Wdz2)
+        Base.Threads.@spawn ddy!(U[1], dUdy)
+        Base.Threads.@spawn ddy!(U[2], dVdy)
+        Base.Threads.@spawn ddy!(U[3], dWdy)
+        Base.Threads.@spawn d2dy2!(U[1], d2Udy2)
+        Base.Threads.@spawn d2dy2!(U[2], d2Vdy2)
+        Base.Threads.@spawn d2dy2!(U[3], d2Wdy2)
+    end
 
     # compute nonlinear components
-    IFFT!(v, U[2], ifft_tmp1)
-    IFFT!(w, U[3], ifft_tmp2)
-    IFFT!(dudz, dUdz, ifft_tmp3)
-    IFFT!(dvdz, dVdz, ifft_tmp4)
-    IFFT!(dwdz, dWdz, ifft_tmp5)
-    IFFT!(dudy, dUdy, ifft_tmp6)
-    IFFT!(dvdy, dVdy, ifft_tmp7)
-    IFFT!(dwdy, dWdy, ifft_tmp8)
-    v_dudy .= v.*dudy
-    w_dudz .= w.*dudz
-    v_dvdy .= v.*dvdy
-    w_dvdz .= w.*dvdz
-    v_dwdy .= v.*dwdy
-    w_dwdz .= w.*dwdz
-    dvdz_dwdy .= dvdz.*dwdy
-    dvdy_dwdz .= dvdy.*dwdz
-    FFT!(V_dUdy, v_dudy)
-    FFT!(W_dUdz, w_dudz)
-    FFT!(V_dVdy, v_dvdy)
-    FFT!(W_dVdz, w_dvdz)
-    FFT!(V_dWdy, v_dwdy)
-    FFT!(W_dWdz, w_dwdz)
-    FFT!(dVdz_dWdy, dvdz_dwdy)
-    FFT!(dVdy_dWdz, dvdy_dwdz)
+    @sync begin
+        Base.Threads.@spawn IFFT!(v, U[2], ifft_tmp1)
+        Base.Threads.@spawn IFFT!(w, U[3], ifft_tmp2)
+        Base.Threads.@spawn IFFT!(dudz, dUdz, ifft_tmp3)
+        Base.Threads.@spawn IFFT!(dvdz, dVdz, ifft_tmp4)
+        Base.Threads.@spawn IFFT!(dwdz, dWdz, ifft_tmp5)
+        Base.Threads.@spawn IFFT!(dudy, dUdy, ifft_tmp6)
+        Base.Threads.@spawn IFFT!(dvdy, dVdy, ifft_tmp7)
+        Base.Threads.@spawn IFFT!(dwdy, dWdy, ifft_tmp8)
+    end
 
+    @sync begin
+        Base.Threads.@spawn v_dudy .= v.*dudy
+        Base.Threads.@spawn w_dudz .= w.*dudz
+        Base.Threads.@spawn v_dvdy .= v.*dvdy
+        Base.Threads.@spawn w_dvdz .= w.*dvdz
+        Base.Threads.@spawn v_dwdy .= v.*dwdy
+        Base.Threads.@spawn w_dwdz .= w.*dwdz
+        Base.Threads.@spawn dvdz_dwdy .= dvdz.*dwdy
+        Base.Threads.@spawn dvdy_dwdz .= dvdy.*dwdz
+    end
+
+    @sync begin
+    Base.Threads.@spawn FFT!(V_dUdy, v_dudy)
+    Base.Threads.@spawn FFT!(W_dUdz, w_dudz)
+    Base.Threads.@spawn FFT!(V_dVdy, v_dvdy)
+    Base.Threads.@spawn FFT!(W_dVdz, w_dvdz)
+    Base.Threads.@spawn FFT!(V_dWdy, v_dwdy)
+    Base.Threads.@spawn FFT!(W_dWdz, w_dwdz)
+    Base.Threads.@spawn FFT!(dVdz_dWdy, dvdz_dwdy)
+    Base.Threads.@spawn FFT!(dVdy_dWdz, dvdy_dwdz)
+    end
     return
 end
 
@@ -258,56 +267,66 @@ function update_r!(cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     IFFT! = cache.plans[2]
 
     # compute derivatives
-    ddt!(rx, drxdt)
-    ddt!(ry, drydt)
-    ddt!(rz, drzdt)
-    ddz!(rx, drxdz)
-    ddz!(ry, drydz)
-    ddz!(rz, drzdz)
-    d2dz2!(rx, d2rxdz2)
-    d2dz2!(ry, d2rydz2)
-    d2dz2!(rz, d2rzdz2)
-    ddy!(rx, drxdy)
-    ddy!(ry, drydy)
-    ddy!(rz, drzdy)
-    d2dy2!(rx, d2rxdy2)
-    d2dy2!(ry, d2rydy2)
-    d2dy2!(rz, d2rzdy2)
+    @sync begin
+        Base.Threads.@spawn ddt!(rx, drxdt)
+        Base.Threads.@spawn ddt!(ry, drydt)
+        Base.Threads.@spawn ddt!(rz, drzdt)
+        Base.Threads.@spawn ddz!(rx, drxdz)
+        Base.Threads.@spawn ddz!(ry, drydz)
+        Base.Threads.@spawn ddz!(rz, drzdz)
+        Base.Threads.@spawn d2dz2!(rx, d2rxdz2)
+        Base.Threads.@spawn d2dz2!(ry, d2rydz2)
+        Base.Threads.@spawn d2dz2!(rz, d2rzdz2)
+        Base.Threads.@spawn ddy!(rx, drxdy)
+        Base.Threads.@spawn ddy!(ry, drydy)
+        Base.Threads.@spawn ddy!(rz, drzdy)
+        Base.Threads.@spawn d2dy2!(rx, d2rxdy2)
+        Base.Threads.@spawn d2dy2!(ry, d2rydy2)
+        Base.Threads.@spawn d2dy2!(rz, d2rzdy2)
+    end
 
     # compute nonlinear components
-    IFFT!(rx_p, rx, ifft_tmp1)
-    IFFT!(ry_p, ry, ifft_tmp2)
-    IFFT!(rz_p, rz, ifft_tmp3)
-    IFFT!(drxdz_p, drxdz, ifft_tmp4)
-    IFFT!(drydz_p, drydz, ifft_tmp5)
-    IFFT!(drzdz_p, drzdz, ifft_tmp6)
-    IFFT!(drxdy_p, drxdy, ifft_tmp7)
-    IFFT!(drydy_p, drydy, ifft_tmp8)
-    IFFT!(drzdy_p, drzdy, ifft_tmp9)
-    v_drxdy .= v.*drxdy_p
-    w_drxdz .= w.*drxdz_p
-    v_drydy .= v.*drydy_p
-    w_drydz .= w.*drydz_p
-    v_drzdy .= v.*drzdy_p
-    w_drzdz .= w.*drzdz_p
-    rx_dudy .= rx_p.*dudy
-    ry_dvdy .= ry_p.*dvdy
-    rz_dwdy .= rz_p.*dwdy
-    rx_dudz .= rx_p.*dudz
-    ry_dvdz .= ry_p.*dvdz
-    rz_dwdz .= rz_p.*dwdz
-    FFT!(V_drxdy, v_drxdy)
-    FFT!(W_drxdz, w_drxdz)
-    FFT!(V_drydy, v_drydy)
-    FFT!(W_drydz, w_drydz)
-    FFT!(V_drzdy, v_drzdy)
-    FFT!(W_drzdz, w_drzdz)
-    FFT!(rx_dUdy, rx_dudy)
-    FFT!(ry_dVdy, ry_dvdy)
-    FFT!(rz_dWdy, rz_dwdy)
-    FFT!(rx_dUdz, rx_dudz)
-    FFT!(ry_dVdz, ry_dvdz)
-    FFT!(rz_dWdz, rz_dwdz)
+    @sync begin
+        Base.Threads.@spawn IFFT!(rx_p, rx, ifft_tmp1)
+        Base.Threads.@spawn IFFT!(ry_p, ry, ifft_tmp2)
+        Base.Threads.@spawn IFFT!(rz_p, rz, ifft_tmp3)
+        Base.Threads.@spawn IFFT!(drxdz_p, drxdz, ifft_tmp4)
+        Base.Threads.@spawn IFFT!(drydz_p, drydz, ifft_tmp5)
+        Base.Threads.@spawn IFFT!(drzdz_p, drzdz, ifft_tmp6)
+        Base.Threads.@spawn IFFT!(drxdy_p, drxdy, ifft_tmp7)
+        Base.Threads.@spawn IFFT!(drydy_p, drydy, ifft_tmp8)
+        Base.Threads.@spawn IFFT!(drzdy_p, drzdy, ifft_tmp9)
+    end
+
+    @sync begin
+         Base.Threads.@spawn v_drxdy .= v.*drxdy_p
+         Base.Threads.@spawn w_drxdz .= w.*drxdz_p
+         Base.Threads.@spawn v_drydy .= v.*drydy_p
+         Base.Threads.@spawn w_drydz .= w.*drydz_p
+         Base.Threads.@spawn v_drzdy .= v.*drzdy_p
+         Base.Threads.@spawn w_drzdz .= w.*drzdz_p
+         Base.Threads.@spawn rx_dudy .= rx_p.*dudy
+         Base.Threads.@spawn ry_dvdy .= ry_p.*dvdy
+         Base.Threads.@spawn rz_dwdy .= rz_p.*dwdy
+         Base.Threads.@spawn rx_dudz .= rx_p.*dudz
+         Base.Threads.@spawn ry_dvdz .= ry_p.*dvdz
+         Base.Threads.@spawn rz_dwdz .= rz_p.*dwdz
+    end
+
+    @sync begin
+         Base.Threads.@spawn FFT!(V_drxdy, v_drxdy)
+         Base.Threads.@spawn FFT!(W_drxdz, w_drxdz)
+         Base.Threads.@spawn FFT!(V_drydy, v_drydy)
+         Base.Threads.@spawn FFT!(W_drydz, w_drydz)
+         Base.Threads.@spawn FFT!(V_drzdy, v_drzdy)
+         Base.Threads.@spawn FFT!(W_drzdz, w_drzdz)
+         Base.Threads.@spawn FFT!(rx_dUdy, rx_dudy)
+         Base.Threads.@spawn FFT!(ry_dVdy, ry_dvdy)
+         Base.Threads.@spawn FFT!(rz_dWdy, rz_dwdy)
+         Base.Threads.@spawn FFT!(rx_dUdz, rx_dudz)
+         Base.Threads.@spawn FFT!(ry_dVdz, ry_dvdz)
+         Base.Threads.@spawn FFT!(rz_dWdz, rz_dwdz)
+    end
 
     return
 end
