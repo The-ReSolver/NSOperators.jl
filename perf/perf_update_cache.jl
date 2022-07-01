@@ -9,7 +9,7 @@ using ChebUtils
 using FDGrids
 
 # initialise cache object
-Ny = 33; Nz = 33; Nt = 33
+Ny = 64; Nz = 64; Nt = 64
 y = chebpts(Ny)
 # NOTE: the Chebyshev differentiation is faster???
 # Dy = DiffMatrix(y, 3, 1); Dy2 = DiffMatrix(y, 3, 2)
