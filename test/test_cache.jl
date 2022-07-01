@@ -52,8 +52,6 @@ end
     U = VectorField(grid)
     FFT! = FFTPlan!(grid; flags=ESTIMATE)
     FFT!(U, u)
-    Re = abs(rand())
-    Ro = abs(rand())
 
     # initialise cache and update velocity field
     Re = abs(rand()); Ro = abs(rand())
