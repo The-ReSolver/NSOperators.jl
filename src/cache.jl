@@ -1,7 +1,5 @@
 # The file contains the definition for the global cache of the optimisation.
 
-# TODO: add methods to extract useful fields from the cache
-
 # TODO: can the typing of this struct be simplified to only include the information that is absolutely necessary
 #       i.e. simplify the type information to reduce redundancy as much as possible
 struct Cache{T, S, P, BC, PLANS}
@@ -22,7 +20,7 @@ struct Cache{T, S, P, BC, PLANS}
 
         # initialise cached arrays
         spec_cache = [similar(U) for _ in 1:69]
-        phys_cache = [similar(u) for _ in 1:29]
+        phys_cache = [similar(u) for _ in 1:37]
 
         # initialise transforms
         FFT! = FFTPlan!(u)
@@ -44,61 +42,171 @@ end
 # TODO: can I create methods for grid the fields without having to call them explicitely?
 Cache(grid::G, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, Re::T, Ro::T) where {G, T<:Real} = Cache(SpectralField(grid), PhysicalField(grid), ū, dūdy, d2ūdy2, Re, Ro)
 
+# methods to access type fields safely
+ū(cache::Cache) = cache.mean_data[1]
+dūdy(cache::Cache) = cache.mean_data[2]
+d2ūdy2(cache::Cache) = cache.mean_data[3]
+dUdt(cache::Cache) = cache.spec_cache[1]
+dVdt(cache::Cache) = cache.spec_cache[2]
+dWdt(cache::Cache) = cache.spec_cache[3]
+dUdz(cache::Cache) = cache.spec_cache[4]
+dVdz(cache::Cache) = cache.spec_cache[5]
+dWdz(cache::Cache) = cache.spec_cache[6]
+d2Udz2(cache::Cache) = cache.spec_cache[7]
+d2Vdz2(cache::Cache) = cache.spec_cache[8]
+d2Wdz2(cache::Cache) = cache.spec_cache[9]
+dUdy(cache::Cache) = cache.spec_cache[10]
+dVdy(cache::Cache) = cache.spec_cache[11]
+dWdy(cache::Cache) = cache.spec_cache[12]
+d2Udy2(cache::Cache) = cache.spec_cache[13]
+d2Vdy2(cache::Cache) = cache.spec_cache[14]
+d2Wdy2(cache::Cache) = cache.spec_cache[15]
+P(cache::Cache) = cache.spec_cache[16]
+dPdy(cache::Cache) = cache.spec_cache[17]
+dPdz(cache::Cache) = cache.spec_cache[18]
+poiss_rhs(cache::Cache) = cache.spec_cache[19]
+V_dUdy(cache::Cache) = cache.spec_cache[20]
+W_dUdz(cache::Cache) = cache.spec_cache[21]
+V_dVdy(cache::Cache) = cache.spec_cache[22]
+W_dVdz(cache::Cache) = cache.spec_cache[23]
+V_dWdy(cache::Cache) = cache.spec_cache[24]
+W_dWdz(cache::Cache) = cache.spec_cache[25]
+dVdz_dWdy(cache::Cache) = cache.spec_cache[26]
+dVdy_dWdz(cache::Cache) = cache.spec_cache[27]
+ifft_tmp1(cache::Cache) = cache.spec_cache[28]
+ifft_tmp2(cache::Cache) = cache.spec_cache[29]
+ifft_tmp3(cache::Cache) = cache.spec_cache[30]
+ifft_tmp4(cache::Cache) = cache.spec_cache[31]
+ifft_tmp5(cache::Cache) = cache.spec_cache[32]
+ifft_tmp6(cache::Cache) = cache.spec_cache[33]
+ifft_tmp7(cache::Cache) = cache.spec_cache[34]
+ifft_tmp8(cache::Cache) = cache.spec_cache[35]
+rx(cache::Cache) = cache.spec_cache[36]
+ry(cache::Cache) = cache.spec_cache[37]
+rz(cache::Cache) = cache.spec_cache[38]
+drxdt(cache::Cache) = cache.spec_cache[42]
+drydt(cache::Cache) = cache.spec_cache[43]
+drzdt(cache::Cache) = cache.spec_cache[44]
+drxdz(cache::Cache) = cache.spec_cache[45]
+drydz(cache::Cache) = cache.spec_cache[46]
+drzdz(cache::Cache) = cache.spec_cache[47]
+d2rxdz2(cache::Cache) = cache.spec_cache[48]
+d2rydz2(cache::Cache) = cache.spec_cache[49]
+d2rzdz2(cache::Cache) = cache.spec_cache[50]
+drxdy(cache::Cache) = cache.spec_cache[51]
+drydy(cache::Cache) = cache.spec_cache[52]
+drzdy(cache::Cache) = cache.spec_cache[53]
+d2rxdy2(cache::Cache) = cache.spec_cache[54]
+d2rydy2(cache::Cache) = cache.spec_cache[55]
+d2rzdy2(cache::Cache) = cache.spec_cache[56]
+V_drxdy(cache::Cache) = cache.spec_cache[57]
+W_drxdz(cache::Cache) = cache.spec_cache[58]
+V_drydy(cache::Cache) = cache.spec_cache[59]
+W_drydz(cache::Cache) = cache.spec_cache[60]
+V_drzdy(cache::Cache) = cache.spec_cache[61]
+W_drzdz(cache::Cache) = cache.spec_cache[62]
+rx_dUdy(cache::Cache) = cache.spec_cache[63]
+ry_dVdy(cache::Cache) = cache.spec_cache[64]
+rz_dWdy(cache::Cache) = cache.spec_cache[65]
+rx_dUdz(cache::Cache) = cache.spec_cache[66]
+ry_dVdz(cache::Cache) = cache.spec_cache[67]
+rz_dWdz(cache::Cache) = cache.spec_cache[68]
+ifft_tmp9(cache::Cache) = cache.spec_cache[69]
+v(cache::Cache) = cache.phys_cache[1]
+w(cache::Cache) = cache.phys_cache[2]
+dudz(cache::Cache) = cache.phys_cache[3]
+dvdz(cache::Cache) = cache.phys_cache[4]
+dwdz(cache::Cache) = cache.phys_cache[5]
+dudy(cache::Cache) = cache.phys_cache[6]
+dvdy(cache::Cache) = cache.phys_cache[7]
+dwdy(cache::Cache) = cache.phys_cache[8]
+v_dudy(cache::Cache) = cache.phys_cache[9]
+w_dudz(cache::Cache) = cache.phys_cache[10]
+v_dvdy(cache::Cache) = cache.phys_cache[11]
+w_dvdz(cache::Cache) = cache.phys_cache[12]
+v_dwdy(cache::Cache) = cache.phys_cache[13]
+w_dwdz(cache::Cache) = cache.phys_cache[14]
+dvdz_dwdy(cache::Cache) = cache.phys_cache[15]
+dvdy_dwdz(cache::Cache) = cache.phys_cache[16]
+drxdz_p(cache::Cache) = cache.phys_cache[17]
+drydz_p(cache::Cache) = cache.phys_cache[18]
+drzdz_p(cache::Cache) = cache.phys_cache[19]
+drxdy_p(cache::Cache) = cache.phys_cache[20]
+drydy_p(cache::Cache) = cache.phys_cache[21]
+drzdy_p(cache::Cache) = cache.phys_cache[22]
+v_drxdy(cache::Cache) = cache.phys_cache[23]
+w_drxdz(cache::Cache) = cache.phys_cache[24]
+v_drydy(cache::Cache) = cache.phys_cache[25]
+w_drydz(cache::Cache) = cache.phys_cache[26]
+v_drzdy(cache::Cache) = cache.phys_cache[27]
+w_drzdz(cache::Cache) = cache.phys_cache[28]
+rx_dudy(cache::Cache) = cache.phys_cache[29]
+ry_dvdy(cache::Cache) = cache.phys_cache[30]
+rz_dwdy(cache::Cache) = cache.phys_cache[31]
+rx_dudz(cache::Cache) = cache.phys_cache[32]
+ry_dvdz(cache::Cache) = cache.phys_cache[33]
+rz_dwdz(cache::Cache) = cache.phys_cache[34]
+rx_p(cache::Cache) = cache.phys_cache[35]
+ry_p(cache::Cache) = cache.phys_cache[36]
+rz_p(cache::Cache) = cache.phys_cache[37]
+FFT!(cache::Cache) = cache.plans[1]
+IFFT!(cache::Cache) = cache.plans[2]
+
 function update_v!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign spectral aliases
-    dUdt = cache.spec_cache[1]
-    dVdt = cache.spec_cache[2]
-    dWdt = cache.spec_cache[3]
-    dUdz = cache.spec_cache[4]
-    dVdz = cache.spec_cache[5]
-    dWdz = cache.spec_cache[6]
-    d2Udz2 = cache.spec_cache[7]
-    d2Vdz2 = cache.spec_cache[8]
-    d2Wdz2 = cache.spec_cache[9]
-    dUdy = cache.spec_cache[10]
-    dVdy = cache.spec_cache[11]
-    dWdy = cache.spec_cache[12]
-    d2Udy2 = cache.spec_cache[13]
-    d2Vdy2 = cache.spec_cache[14]
-    d2Wdy2 = cache.spec_cache[15]
-    V_dUdy = cache.spec_cache[20]
-    W_dUdz = cache.spec_cache[21]
-    V_dVdy = cache.spec_cache[22]
-    W_dVdz = cache.spec_cache[23]
-    V_dWdy = cache.spec_cache[24]
-    W_dWdz = cache.spec_cache[25]
-    dVdz_dWdy = cache.spec_cache[26]
-    dVdy_dWdz = cache.spec_cache[27]
-    ifft_tmp1 = cache.spec_cache[28]
-    ifft_tmp2 = cache.spec_cache[29]
-    ifft_tmp3 = cache.spec_cache[30]
-    ifft_tmp4 = cache.spec_cache[31]
-    ifft_tmp5 = cache.spec_cache[32]
-    ifft_tmp6 = cache.spec_cache[33]
-    ifft_tmp7 = cache.spec_cache[34]
-    ifft_tmp8 = cache.spec_cache[35]
+    dUdt = NSOperators.dUdt(cache)
+    dVdt = NSOperators.dVdt(cache)
+    dWdt = NSOperators.dWdt(cache)
+    dUdz = NSOperators.dUdz(cache)
+    dVdz = NSOperators.dVdz(cache)
+    dWdz = NSOperators.dWdz(cache)
+    d2Udz2 = NSOperators.d2Udz2(cache)
+    d2Vdz2 = NSOperators.d2Vdz2(cache)
+    d2Wdz2 = NSOperators.d2Wdz2(cache)
+    dUdy = NSOperators.dUdy(cache)
+    dVdy = NSOperators.dVdy(cache)
+    dWdy = NSOperators.dWdy(cache)
+    d2Udy2 = NSOperators.d2Udy2(cache)
+    d2Vdy2 = NSOperators.d2Vdy2(cache)
+    d2Wdy2 = NSOperators.d2Wdy2(cache)
+    V_dUdy = NSOperators.V_dUdy(cache)
+    W_dUdz = NSOperators.W_dUdz(cache)
+    V_dVdy = NSOperators.V_dVdy(cache)
+    W_dVdz = NSOperators.W_dVdz(cache)
+    V_dWdy = NSOperators.V_dWdy(cache)
+    W_dWdz = NSOperators.W_dWdz(cache)
+    dVdz_dWdy = NSOperators.dVdz_dWdy(cache)
+    dVdy_dWdz = NSOperators.dVdy_dWdz(cache)
+    ifft_tmp1 = NSOperators.ifft_tmp1(cache)
+    ifft_tmp2 = NSOperators.ifft_tmp2(cache)
+    ifft_tmp3 = NSOperators.ifft_tmp3(cache)
+    ifft_tmp4 = NSOperators.ifft_tmp4(cache)
+    ifft_tmp5 = NSOperators.ifft_tmp5(cache)
+    ifft_tmp6 = NSOperators.ifft_tmp6(cache)
+    ifft_tmp7 = NSOperators.ifft_tmp7(cache)
+    ifft_tmp8 = NSOperators.ifft_tmp8(cache)
 
     # assign physical aliases
-    v = cache.phys_cache[1]
-    w = cache.phys_cache[2]
-    dudz = cache.phys_cache[3]
-    dvdz = cache.phys_cache[4]
-    dwdz = cache.phys_cache[5]
-    dudy = cache.phys_cache[6]
-    dvdy = cache.phys_cache[7]
-    dwdy = cache.phys_cache[8]
-    v_dudy = cache.phys_cache[9]
-    w_dudz = cache.phys_cache[10]
-    v_dvdy = cache.phys_cache[11]
-    w_dvdz = cache.phys_cache[12]
-    v_dwdy = cache.phys_cache[13]
-    w_dwdz = cache.phys_cache[14]
-    dvdz_dwdy = cache.phys_cache[15]
-    dvdy_dwdz = cache.phys_cache[16]
+    v = NSOperators.v(cache)
+    w = NSOperators.w(cache)
+    dudz = NSOperators.dudz(cache)
+    dvdz = NSOperators.dvdz(cache)
+    dwdz = NSOperators.dwdz(cache)
+    dudy = NSOperators.dudy(cache)
+    dvdy = NSOperators.dvdy(cache)
+    dwdy = NSOperators.dwdy(cache)
+    v_dudy = NSOperators.v_dudy(cache)
+    w_dudz = NSOperators.w_dudz(cache)
+    v_dvdy = NSOperators.v_dvdy(cache)
+    w_dvdz = NSOperators.w_dvdz(cache)
+    v_dwdy = NSOperators.v_dwdy(cache)
+    w_dwdz = NSOperators.w_dwdz(cache)
+    dvdz_dwdy = NSOperators.dvdz_dwdy(cache)
+    dvdy_dwdz = NSOperators.dvdy_dwdz(cache)
 
     # assign transform aliases
-    FFT! = cache.plans[1]
-    IFFT! = cache.plans[2]
+    FFT! = NSOperators.FFT!(cache)
+    IFFT! = NSOperators.IFFT!(cache)
 
     # compute derivatives
     @sync begin
@@ -158,15 +266,15 @@ end
 
 function update_p!(cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign aliases
-    dUdy = cache.spec_cache[10]
-    d2Vdy2 = cache.spec_cache[14]
-    P = cache.spec_cache[16]
-    dPdy = cache.spec_cache[17]
-    dPdz = cache.spec_cache[18]
-    poiss_rhs = cache.spec_cache[19]
-    dVdz_dWdy = cache.spec_cache[26]
-    dVdy_dWdz = cache.spec_cache[27]
-    dūdy = cache.mean_data[2]
+    dUdy = NSOperators.dUdy(cache)
+    d2Vdy2 = NSOperators.d2Vdy2(cache)
+    P = NSOperators.P(cache)
+    dPdy = NSOperators.dPdy(cache)
+    dPdz = NSOperators.dPdz(cache)
+    poiss_rhs = NSOperators.poiss_rhs(cache)
+    dVdz_dWdy = NSOperators.dVdz_dWdy(cache)
+    dVdy_dWdz = NSOperators.dVdy_dWdz(cache)
+    dūdy = NSOperators.dūdy(cache)
 
     # compute rhs of pressure equation
     @. poiss_rhs = -2.0*(dVdz_dWdy - dVdy_dWdz) - cache.Ro*dUdy
@@ -194,81 +302,81 @@ end
 
 function update_r!(cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign spectral aliases
-    ifft_tmp1 = cache.spec_cache[28]
-    ifft_tmp2 = cache.spec_cache[29]
-    ifft_tmp3 = cache.spec_cache[30]
-    ifft_tmp4 = cache.spec_cache[31]
-    ifft_tmp5 = cache.spec_cache[32]
-    ifft_tmp6 = cache.spec_cache[33]
-    ifft_tmp7 = cache.spec_cache[34]
-    ifft_tmp8 = cache.spec_cache[35]
-    rx = cache.spec_cache[36]
-    ry = cache.spec_cache[37]
-    rz = cache.spec_cache[38]
-    drxdt = cache.spec_cache[42]
-    drydt = cache.spec_cache[43]
-    drzdt = cache.spec_cache[44]
-    drxdz = cache.spec_cache[45]
-    drydz = cache.spec_cache[46]
-    drzdz = cache.spec_cache[47]
-    d2rxdz2 = cache.spec_cache[48]
-    d2rydz2 = cache.spec_cache[49]
-    d2rzdz2 = cache.spec_cache[50]
-    drxdy = cache.spec_cache[51]
-    drydy = cache.spec_cache[52]
-    drzdy = cache.spec_cache[53]
-    d2rxdy2 = cache.spec_cache[54]
-    d2rydy2 = cache.spec_cache[55]
-    d2rzdy2 = cache.spec_cache[56]
-    V_drxdy = cache.spec_cache[57]
-    W_drxdz = cache.spec_cache[58]
-    V_drydy = cache.spec_cache[59]
-    W_drydz = cache.spec_cache[60]
-    V_drzdy = cache.spec_cache[61]
-    W_drzdz = cache.spec_cache[62]
-    rx_dUdy = cache.spec_cache[63]
-    ry_dVdy = cache.spec_cache[64]
-    rz_dWdy = cache.spec_cache[65]
-    rx_dUdz = cache.spec_cache[66]
-    ry_dVdz = cache.spec_cache[67]
-    rz_dWdz = cache.spec_cache[68]
-    ifft_tmp9 = cache.spec_cache[69]
+    ifft_tmp1 = NSOperators.ifft_tmp1(cache)
+    ifft_tmp2 = NSOperators.ifft_tmp2(cache)
+    ifft_tmp3 = NSOperators.ifft_tmp3(cache)
+    ifft_tmp4 = NSOperators.ifft_tmp4(cache)
+    ifft_tmp5 = NSOperators.ifft_tmp5(cache)
+    ifft_tmp6 = NSOperators.ifft_tmp6(cache)
+    ifft_tmp7 = NSOperators.ifft_tmp7(cache)
+    ifft_tmp8 = NSOperators.ifft_tmp8(cache)
+    rx = NSOperators.rx(cache)
+    ry = NSOperators.ry(cache)
+    rz = NSOperators.rz(cache)
+    drxdt = NSOperators.drxdt(cache)
+    drydt = NSOperators.drydt(cache)
+    drzdt = NSOperators.drzdt(cache)
+    drxdz = NSOperators.drxdz(cache)
+    drydz = NSOperators.drydz(cache)
+    drzdz = NSOperators.drzdz(cache)
+    d2rxdz2 = NSOperators.d2rxdz2(cache)
+    d2rydz2 = NSOperators.d2rydz2(cache)
+    d2rzdz2 = NSOperators.d2rzdz2(cache)
+    drxdy = NSOperators.drxdy(cache)
+    drydy = NSOperators.drydy(cache)
+    drzdy = NSOperators.drzdy(cache)
+    d2rxdy2 = NSOperators.d2rxdy2(cache)
+    d2rydy2 = NSOperators.d2rydy2(cache)
+    d2rzdy2 = NSOperators.d2rzdy2(cache)
+    V_drxdy = NSOperators.V_drxdy(cache)
+    W_drxdz = NSOperators.W_drxdz(cache)
+    V_drydy = NSOperators.V_drydy(cache)
+    W_drydz = NSOperators.W_drydz(cache)
+    V_drzdy = NSOperators.V_drzdy(cache)
+    W_drzdz = NSOperators.W_drzdz(cache)
+    rx_dUdy = NSOperators.rx_dUdy(cache)
+    ry_dVdy = NSOperators.ry_dVdy(cache)
+    rz_dWdy = NSOperators.rz_dWdy(cache)
+    rx_dUdz = NSOperators.rx_dUdz(cache)
+    ry_dVdz = NSOperators.ry_dVdz(cache)
+    rz_dWdz = NSOperators.rz_dWdz(cache)
+    ifft_tmp9 = NSOperators.ifft_tmp9(cache)
 
 
     # assign physical aliases
-    v = cache.phys_cache[1]
-    w = cache.phys_cache[2]
-    dudz = cache.phys_cache[3]
-    dvdz = cache.phys_cache[4]
-    dwdz = cache.phys_cache[5]
-    dudy = cache.phys_cache[6]
-    dvdy = cache.phys_cache[7]
-    dwdy = cache.phys_cache[8]
-    drxdz_p = cache.phys_cache[9]
-    drydz_p = cache.phys_cache[10]
-    drzdz_p = cache.phys_cache[11]
-    drxdy_p = cache.phys_cache[12]
-    drydy_p = cache.phys_cache[13]
-    drzdy_p = cache.phys_cache[14]
-    v_drxdy = cache.phys_cache[15]
-    w_drxdz = cache.phys_cache[16]
-    v_drydy = cache.phys_cache[17]
-    w_drydz = cache.phys_cache[18]
-    v_drzdy = cache.phys_cache[19]
-    w_drzdz = cache.phys_cache[20]
-    rx_dudy = cache.phys_cache[21]
-    ry_dvdy = cache.phys_cache[22]
-    rz_dwdy = cache.phys_cache[23]
-    rx_dudz = cache.phys_cache[24]
-    ry_dvdz = cache.phys_cache[25]
-    rz_dwdz = cache.phys_cache[26]
-    rx_p = cache.phys_cache[27]
-    ry_p = cache.phys_cache[28]
-    rz_p = cache.phys_cache[29]
+    v = NSOperators.v(cache)
+    w = NSOperators.w(cache)
+    dudz = NSOperators.dudz(cache)
+    dvdz = NSOperators.dvdz(cache)
+    dwdz = NSOperators.dwdz(cache)
+    dudy = NSOperators.dudy(cache)
+    dvdy = NSOperators.dvdy(cache)
+    dwdy = NSOperators.dwdy(cache)
+    drxdz_p = NSOperators.drxdz_p(cache)
+    drydz_p = NSOperators.drydz_p(cache)
+    drzdz_p = NSOperators.drzdz_p(cache)
+    drxdy_p = NSOperators.drxdy_p(cache)
+    drydy_p = NSOperators.drydy_p(cache)
+    drzdy_p = NSOperators.drzdy_p(cache)
+    v_drxdy = NSOperators.v_drxdy(cache)
+    w_drxdz = NSOperators.w_drxdz(cache)
+    v_drydy = NSOperators.v_drydy(cache)
+    w_drydz = NSOperators.w_drydz(cache)
+    v_drzdy = NSOperators.v_drzdy(cache)
+    w_drzdz = NSOperators.w_drzdz(cache)
+    rx_dudy = NSOperators.rx_dudy(cache)
+    ry_dvdy = NSOperators.ry_dvdy(cache)
+    rz_dwdy = NSOperators.rz_dwdy(cache)
+    rx_dudz = NSOperators.rx_dudz(cache)
+    ry_dvdz = NSOperators.ry_dvdz(cache)
+    rz_dwdz = NSOperators.rz_dwdz(cache)
+    rx_p = NSOperators.rx_p(cache)
+    ry_p = NSOperators.ry_p(cache)
+    rz_p = NSOperators.rz_p(cache)
 
     # assign transform aliases
-    FFT! = cache.plans[1]
-    IFFT! = cache.plans[2]
+    FFT! = NSOperators.FFT!(cache)
+    IFFT! = NSOperators.IFFT!(cache)
 
     # compute derivatives
     @sync begin
