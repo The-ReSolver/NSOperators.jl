@@ -29,7 +29,7 @@ struct Cache{T, S, P, BC, PLANS}
         IFFT! = IFFTPlan!(U)
 
         # initialise laplace operator
-        lapl = Laplace(size(u)[1], size(u)[2], u.grid.dom[2], u.grid.Dy[2], u.grid.Dy[1])
+        lapl = Laplace(size(u)[1], size(u)[2], get_β(get_grid(u)), u.grid.Dy[2], u.grid.Dy[1])
 
         # initialise boundary data cache
         bc_cache = (Matrix{Complex{T}}(undef, size(U)[2], size(U)[3]),
