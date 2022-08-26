@@ -1,6 +1,8 @@
 # This file contains the definitions required to compute the residual and
 # associated gradients of an incompressible velocity field.
 
+# TODO: split ℜ into "unsafe" method that doesn't do the cache updating, and one that automatically does the cache update on its own.
+
 function localresidual!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign spectral aliases
     dUdt = cache.spec_cache[1]
@@ -36,16 +38,15 @@ function localresidual!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector
 
     # calculate mean constraint
     @views begin
-        @. rx[:, 1, 1] = cache.Re_recip*d2ūdy2 - V_dUdy[:, 1, 1] - W_dUdz[:, 1, 1]
-        @. ry[:, 1, 1] = (-cache.Ro)*ū - dPdy[:, 1, 1] - V_dVdy[:, 1, 1] - W_dVdz[:, 1, 1]
-        # @. ry[:, 1, 1] = (-cache.Ro)*ū - V_dVdy[:, 1, 1] - W_dVdz[:, 1, 1] # NOTE: this produces similar results to mathematica notebook
-        @. rz[:, 1, 1] = -V_dWdy[:, 1, 1] - W_dWdz[:, 1, 1]
+        @. rx[:, 1, 1] = -cache.Re_recip*d2ūdy2 + V_dUdy[:, 1, 1] + W_dUdz[:, 1, 1]
+        @. ry[:, 1, 1] = cache.Ro*ū + dPdy[:, 1, 1] + V_dVdy[:, 1, 1] + W_dVdz[:, 1, 1]
+        @. rz[:, 1, 1] = V_dWdy[:, 1, 1] + W_dWdz[:, 1, 1]
     end
 
     return VectorField(rx, ry, rz)
 end
 
-ℜ(cache::Cache) = 0.5*(norm(VectorField(cache.spec_cache[36], cache.spec_cache[37], cache.spec_cache[38]))^2)
+ℜ(cache::Cache) = 0.5*norm(VectorField(cache.spec_cache[36], cache.spec_cache[37], cache.spec_cache[38]))^2
 
 function dℜ!(cache::Cache)
     # assign spectral aliases

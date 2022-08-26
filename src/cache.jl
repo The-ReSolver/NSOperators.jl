@@ -1,5 +1,7 @@
 # The file contains the definition for the global cache of the optimisation.
 
+# TODO: add methods to extract useful fields from the cache
+
 # TODO: can the typing of this struct be simplified to only include the information that is absolutely necessary
 #       i.e. simplify the type information to reduce redundancy as much as possible
 struct Cache{T, S, P, BC, PLANS}
@@ -12,14 +14,15 @@ struct Cache{T, S, P, BC, PLANS}
     Re_recip::T
     Ro::T
 
+    # constructor for a mean fixed field
     function Cache(U::S, u::P, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, Re::T, Ro::T) where {T<:Real, S<:AbstractArray{Complex{T}, 3}, P<:AbstractArray{T, 3}}
         # check compatible sizes
         U.grid == u.grid || throw(ArgumentError("Fields are on different grids!"))
         (size(U.grid.y) == size(ū) && size(U.grid.y) == size(dūdy) && size(U.grid.y) == size(d2ūdy2)) || throw(ArgumentError("Mean data on different grids!"))
 
         # initialise cached arrays
-        spec_cache = [similar(U) for i in 1:69]
-        phys_cache = [similar(u) for i in 1:29]
+        spec_cache = [similar(U) for _ in 1:69]
+        phys_cache = [similar(u) for _ in 1:29]
 
         # initialise transforms
         FFT! = FFTPlan!(u)
@@ -39,7 +42,7 @@ struct Cache{T, S, P, BC, PLANS}
 end
 
 # TODO: can I create methods for grid the fields without having to call them explicitely?
-Cache(grid::G, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, Re::T, Ro::T) where {G, T<:Real} = Cache(SpectralField(grid), PhysicalField(grid), ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, Re::T, Ro::T)
+Cache(grid::G, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, Re::T, Ro::T) where {G, T<:Real} = Cache(SpectralField(grid), PhysicalField(grid), ū, dūdy, d2ūdy2, Re, Ro)
 
 function update_v!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign spectral aliases
@@ -140,15 +143,16 @@ function update_v!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     end
 
     @sync begin
-    Base.Threads.@spawn FFT!(V_dUdy, v_dudy)
-    Base.Threads.@spawn FFT!(W_dUdz, w_dudz)
-    Base.Threads.@spawn FFT!(V_dVdy, v_dvdy)
-    Base.Threads.@spawn FFT!(W_dVdz, w_dvdz)
-    Base.Threads.@spawn FFT!(V_dWdy, v_dwdy)
-    Base.Threads.@spawn FFT!(W_dWdz, w_dwdz)
-    Base.Threads.@spawn FFT!(dVdz_dWdy, dvdz_dwdy)
-    Base.Threads.@spawn FFT!(dVdy_dWdz, dvdy_dwdz)
+        Base.Threads.@spawn FFT!(V_dUdy, v_dudy)
+        Base.Threads.@spawn FFT!(W_dUdz, w_dudz)
+        Base.Threads.@spawn FFT!(V_dVdy, v_dvdy)
+        Base.Threads.@spawn FFT!(W_dVdz, w_dvdz)
+        Base.Threads.@spawn FFT!(V_dWdy, v_dwdy)
+        Base.Threads.@spawn FFT!(W_dWdz, w_dwdz)
+        Base.Threads.@spawn FFT!(dVdz_dWdy, dvdz_dwdy)
+        Base.Threads.@spawn FFT!(dVdy_dWdz, dvdy_dwdz)
     end
+
     return
 end
 
@@ -299,33 +303,33 @@ function update_r!(cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     end
 
     @sync begin
-         Base.Threads.@spawn v_drxdy .= v.*drxdy_p
-         Base.Threads.@spawn w_drxdz .= w.*drxdz_p
-         Base.Threads.@spawn v_drydy .= v.*drydy_p
-         Base.Threads.@spawn w_drydz .= w.*drydz_p
-         Base.Threads.@spawn v_drzdy .= v.*drzdy_p
-         Base.Threads.@spawn w_drzdz .= w.*drzdz_p
-         Base.Threads.@spawn rx_dudy .= rx_p.*dudy
-         Base.Threads.@spawn ry_dvdy .= ry_p.*dvdy
-         Base.Threads.@spawn rz_dwdy .= rz_p.*dwdy
-         Base.Threads.@spawn rx_dudz .= rx_p.*dudz
-         Base.Threads.@spawn ry_dvdz .= ry_p.*dvdz
-         Base.Threads.@spawn rz_dwdz .= rz_p.*dwdz
+        Base.Threads.@spawn v_drxdy .= v.*drxdy_p
+        Base.Threads.@spawn w_drxdz .= w.*drxdz_p
+        Base.Threads.@spawn v_drydy .= v.*drydy_p
+        Base.Threads.@spawn w_drydz .= w.*drydz_p
+        Base.Threads.@spawn v_drzdy .= v.*drzdy_p
+        Base.Threads.@spawn w_drzdz .= w.*drzdz_p
+        Base.Threads.@spawn rx_dudy .= rx_p.*dudy
+        Base.Threads.@spawn ry_dvdy .= ry_p.*dvdy
+        Base.Threads.@spawn rz_dwdy .= rz_p.*dwdy
+        Base.Threads.@spawn rx_dudz .= rx_p.*dudz
+        Base.Threads.@spawn ry_dvdz .= ry_p.*dvdz
+        Base.Threads.@spawn rz_dwdz .= rz_p.*dwdz
     end
 
     @sync begin
-         Base.Threads.@spawn FFT!(V_drxdy, v_drxdy)
-         Base.Threads.@spawn FFT!(W_drxdz, w_drxdz)
-         Base.Threads.@spawn FFT!(V_drydy, v_drydy)
-         Base.Threads.@spawn FFT!(W_drydz, w_drydz)
-         Base.Threads.@spawn FFT!(V_drzdy, v_drzdy)
-         Base.Threads.@spawn FFT!(W_drzdz, w_drzdz)
-         Base.Threads.@spawn FFT!(rx_dUdy, rx_dudy)
-         Base.Threads.@spawn FFT!(ry_dVdy, ry_dvdy)
-         Base.Threads.@spawn FFT!(rz_dWdy, rz_dwdy)
-         Base.Threads.@spawn FFT!(rx_dUdz, rx_dudz)
-         Base.Threads.@spawn FFT!(ry_dVdz, ry_dvdz)
-         Base.Threads.@spawn FFT!(rz_dWdz, rz_dwdz)
+        Base.Threads.@spawn FFT!(V_drxdy, v_drxdy)
+        Base.Threads.@spawn FFT!(W_drxdz, w_drxdz)
+        Base.Threads.@spawn FFT!(V_drydy, v_drydy)
+        Base.Threads.@spawn FFT!(W_drydz, w_drydz)
+        Base.Threads.@spawn FFT!(V_drzdy, v_drzdy)
+        Base.Threads.@spawn FFT!(W_drzdz, w_drzdz)
+        Base.Threads.@spawn FFT!(rx_dUdy, rx_dudy)
+        Base.Threads.@spawn FFT!(ry_dVdy, ry_dvdy)
+        Base.Threads.@spawn FFT!(rz_dWdy, rz_dwdy)
+        Base.Threads.@spawn FFT!(rx_dUdz, rx_dudz)
+        Base.Threads.@spawn FFT!(ry_dVdz, ry_dvdz)
+        Base.Threads.@spawn FFT!(rz_dWdz, rz_dwdz)
     end
 
     return

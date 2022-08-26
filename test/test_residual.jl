@@ -13,8 +13,8 @@
     ū_fun(y) = y
     dūdy_fun(y) = 1.0
     d2ūdy2_fun(y) = 0.0
-    r_mean_x_fun(y) = -(π/2)*(cos(2*π*y) + cos(π*y))*0.56515910399 # modified bessel function of the first kind, first order evaluated at 1!
-    r_mean_y_fun(y) = (π/2)*sin(π*y)*(cos(π*y) + 1) - Ro*y
+    r_mean_x_fun(y) = (π/2)*(cos(2*π*y) + cos(π*y))*0.56515910399 # modified bessel function of the first kind, first order evaluated at 1!
+    r_mean_y_fun(y) = -(π/2)*sin(π*y)*(cos(π*y) + 1) + Ro*y
     r_mean_z_fun(y) = 0.0
     u_fun(y, z, t) = sin(π*y)*exp(cos(z))*sin(t)
     v_fun(y, z, t) = (cos(π*y) + 1)*cos(z)*sin(t)
@@ -47,13 +47,9 @@
     d2Vdy2 = SpectralField(grid)
     rhs_phys = PhysicalField(grid, rhs_fun)
     rhs_spec = SpectralField(grid)
-    u = VectorField(PhysicalField(grid, u_fun),
-                    PhysicalField(grid, v_fun),
-                    PhysicalField(grid, w_fun))
+    u = VectorField(grid, u_fun, v_fun, w_fun)
     U = VectorField(grid)
-    res_phys = VectorField(PhysicalField(grid, rx_fun_no_p),
-                            PhysicalField(grid, ry_fun_no_p),
-                            PhysicalField(grid, rz_fun_no_p))
+    res_phys = VectorField(grid, rx_fun_no_p, ry_fun_no_p, rz_fun_no_p)
     res_spec = VectorField(grid)
 
     # transform physical fields to spectral fields
@@ -86,7 +82,7 @@
     # include mean constraint in residual fields
     @views begin
         res_spec[1][:, 1, 1] = r_mean_x
-        res_spec[2][:, 1, 1] = r_mean_y - dPdy[:, 1, 1]
+        res_spec[2][:, 1, 1] = r_mean_y + dPdy[:, 1, 1]
         res_spec[3][:, 1, 1] = r_mean_z
     end
 
@@ -95,9 +91,6 @@
     update_v!(U, cache)
     update_p!(cache)
     res_calc = localresidual!(U, cache)
-    @test res_calc[1] === cache.spec_cache[36]
-    @test res_calc[2] === cache.spec_cache[37]
-    @test res_calc[3] === cache.spec_cache[38]
     @test res_calc ≈ res_spec
 
     # divergence
@@ -125,71 +118,63 @@
 end
 
 @testset "Global reisudal calculation   " begin
-    # # initialise variables and arrays
-    # Ny = 32; Nz = 32; Nt = 32
-    # y = chebpts(Ny)
-    # Dy = chebdiff(Ny)
-    # Dy2 = chebddiff(Ny)
-    # ws = chebws(Dy)
-    # ω = 1.0
-    # β = 1.0
-    # # Re = abs(randn()); Ro = abs(randn())
-    # Re = 1.0; Ro = 1.0
+    # initialise variables and arrays
+    Ny = 32; Nz = 32; Nt = 32
+    y = chebpts(Ny)
+    Dy = chebdiff(Ny)
+    Dy2 = chebddiff(Ny)
+    ws = chebws(Dy)
+    ω = 1.0
+    β = 1.0
+    Re = 1.0; Ro = 1.0
 
-    # # initialise functions
-    # ū_fun(y) = y
-    # dūdy_fun(y) = 1.0
-    # d2ūdy2_fun(y) = 0.0
-    # u_fun(y, z, t) = sin(π*y)*exp(cos(z))*sin(t)
-    # v_fun(y, z, t) = (cos(π*y) + 1)*cos(z)*sin(t)
-    # w_fun(y, z, t) = π*sin(π*y)*sin(z)*sin(t)
+    # initialise functions
+    ū_fun(y) = y
+    dūdy_fun(y) = 1.0
+    d2ūdy2_fun(y) = 0.0
+    u_fun(y, z, t) = (1 - y^2)*exp(cos(z))*sin(t)
+    v_fun(y, z, t) = (cos(π*y) + 1)*cos(z)*sin(t)
+    w_fun(y, z, t) = π*sin(π*y)*sin(z)*cos(sin(t))
 
-    # # initialise laplacian
-    # lapl = Laplace(Ny, Nz, β, Dy2, Dy)
+    # initialise laplacian
+    lapl = Laplace(Ny, Nz, β, Dy2, Dy)
 
-    # # initialise grid
-    # grid = Grid(y, Nz, Nt, Dy, Dy2, ws, ω, β)
+    # initialise grid
+    grid = Grid(y, Nz, Nt, Dy, Dy2, ws, ω, β)
 
-    # # initialise transforms
-    # FFT! = FFTPlan!(grid; flags=ESTIMATE)
+    # initialise transforms
+    FFT! = FFTPlan!(grid; flags=ESTIMATE)
 
-    # # initialise mean vectors
-    # ū = [ū_fun(y[i]) for i in 1:Ny]
-    # dūdy = [dūdy_fun(y[i]) for i in 1:Ny]
-    # d2ūdy2 = [d2ūdy2_fun(y[i]) for i in 1:Ny]
+    # initialise mean vectors
+    ū = [ū_fun(y[i]) for i in 1:Ny]
+    dūdy = [dūdy_fun(y[i]) for i in 1:Ny]
+    d2ūdy2 = [d2ūdy2_fun(y[i]) for i in 1:Ny]
 
-    # # initialise fields
-    # u = VectorField(PhysicalField(grid, u_fun),
-    #                 PhysicalField(grid, v_fun),
-    #                 PhysicalField(grid, w_fun))
-    # U = VectorField(grid)
-    # FFT!(U, u)
+    # initialise fields
+    u = VectorField(grid, u_fun, v_fun, w_fun)
+    U = VectorField(grid)
+    FFT!(U, u)
 
-    # # calculate local reisudal
-    # cache = Cache(U[1], u[1], ū, dūdy, d2ūdy2, Re, Ro)
-    # update_v!(U, cache)
-    # update_p!(cache)
-    # localresidual!(U, cache)
+    # calculate reisudal
+    cache = Cache(U[1], u[1], ū, dūdy, d2ūdy2, Re, Ro)
+    update_v!(U, cache)
+    update_p!(cache)
+    localresidual!(U, cache)
+    res = ℜ(cache)
 
-    # # pressure norm components
-    # dPdy = copy(cache.spec_cache[17])
-    # dPdz = copy(cache.spec_cache[18])
-    # lry_no_pr = copy(cache.spec_cache[37])
-    # lrz_no_pr = copy(cache.spec_cache[38])
-    # lry_no_pr .= lry_no_pr .- dPdy
-    # lrz_no_pr .= lrz_no_pr .- dPdz
-    # ∇P_norm = 0.5*(norm(VectorField(dPdy, dPdz))^2)
-    # NS_pressure_dot = dot(VectorField(lry_no_pr, lrz_no_pr), VectorField(dPdy, dPdz))
+    # pressure norm components
+    dPdy = copy(cache.spec_cache[17])
+    dPdz = copy(cache.spec_cache[18])
+    lry_no_pr = copy(cache.spec_cache[37])
+    lrz_no_pr = copy(cache.spec_cache[38])
+    lry_no_pr .= lry_no_pr .- dPdy
+    lrz_no_pr .= lrz_no_pr .- dPdz
+    ∇P_norm = 0.5*(norm(VectorField(dPdy, dPdz))^2)
+    NS_pressure_dot = Fields.dot(VectorField(lry_no_pr, lrz_no_pr), VectorField(dPdy, dPdz))
 
-    # println(ℜ(cache) - NS_pressure_dot - ∇P_norm)
-    # # println(NS_pressure_dot)
-    # # println(∇P_norm)
-    # # println(118.8299548630935) # NOTE: for u = sin(π*y)*exp(cos(z))*sin(t)
-    # # println(94.09344761580931) # NOTE: for u = sin(π*y)*cos(z)*sin(t)
-    # # println(7.50927) # NOTE: for u = sin(π*y)*cos(z)*sin(t), v = 0.0, w = 0.0
-    # # println(8.13049) # NOTE: for u = 0.0, v = (cos(π*y) + 1)*cos(z)*sin(t), w = 0.0
-    # # println(74.3528) # NOTE: for u = 0.0, v = 0.0, w = π*sin(π*y)*sin(z)*sin(t)
-    # # @test ℜ(cache) ≈ 117.6368700600077 + NS_pressure_dot + ∇P_norm
+    # NOTE: this is done since the mathematica script this answer is derived
+    #       from doesn't include pressure
+    @test res - NS_pressure_dot - ∇P_norm ≈ 8253.897168444093
 end
 
 @testset "Residual gradient calculation " begin
