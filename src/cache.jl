@@ -57,7 +57,8 @@ spec_methods = [:dUdt, :dVdt, :dWdt, :dUdz, :dVdz, :dWdz, :d2Udz2, :d2Vdz2,
                 :drxdz, :drydz, :drzdz, :d2rxdz2, :d2rydz2, :d2rzdz2, :drxdy,
                 :drydy, :drzdy, :d2rxdy2, :d2rydy2, :d2rzdy2, :V_drxdy,
                 :W_drxdz, :V_drydy, :W_drydz, :V_drzdy, :W_drzdz, :rx_dUdy,
-                :ry_dVdy, :rz_dWdy, :rx_dUdz, :ry_dVdz, :rz_dWdz, :ifft_tmp9]
+                :ry_dVdy, :rz_dWdy, :rx_dUdz, :ry_dVdz, :rz_dWdz, :ifft_tmp9,
+                :dℜx, :dℜy, :dℜz]
 phys_methods = [:v, :w, :dudz, :dvdz, :dwdz, :dudy, :dvdy, :dwdy, :v_dudy,
                 :w_dudz, :v_dvdy, :w_dvdz, :v_dwdy, :w_dwdz, :dvdz_dwdy,
                 :dvdy_dwdz, :drxdz_p, :drydz_p, :drzdz_p, :drxdy_p, :drydy_p,

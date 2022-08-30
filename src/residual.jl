@@ -1,35 +1,33 @@
 # This file contains the definitions required to compute the residual and
 # associated gradients of an incompressible velocity field.
 
-# TODO: split ℜ into "unsafe" method that doesn't do the cache updating, and one that automatically does the cache update on its own.
-
 function localresidual!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     # assign spectral aliases
-    dUdt = cache.spec_cache[1]
-    dVdt = cache.spec_cache[2]
-    dWdt = cache.spec_cache[3]
-    d2Udz2 = cache.spec_cache[7]
-    d2Vdz2 = cache.spec_cache[8]
-    d2Wdz2 = cache.spec_cache[9]
-    d2Udy2 = cache.spec_cache[13]
-    d2Vdy2 = cache.spec_cache[14]
-    d2Wdy2 = cache.spec_cache[15]
-    dPdy = cache.spec_cache[17]
-    dPdz = cache.spec_cache[18]
-    V_dUdy = cache.spec_cache[20]
-    W_dUdz = cache.spec_cache[21]
-    V_dVdy = cache.spec_cache[22]
-    W_dVdz = cache.spec_cache[23]
-    V_dWdy = cache.spec_cache[24]
-    W_dWdz = cache.spec_cache[25]
-    rx = cache.spec_cache[36]
-    ry = cache.spec_cache[37]
-    rz = cache.spec_cache[38]
+    dUdt = NSOperators.dUdt(cache)
+    dVdt = NSOperators.dVdt(cache)
+    dWdt = NSOperators.dWdt(cache)
+    d2Udz2 = NSOperators.d2Udz2(cache)
+    d2Vdz2 = NSOperators.d2Vdz2(cache)
+    d2Wdz2 = NSOperators.d2Wdz2(cache)
+    d2Udy2 = NSOperators.d2Udy2(cache)
+    d2Vdy2 = NSOperators.d2Vdy2(cache)
+    d2Wdy2 = NSOperators.d2Wdy2(cache)
+    dPdy = NSOperators.dPdy(cache)
+    dPdz = NSOperators.dPdz(cache)
+    V_dUdy = NSOperators.V_dUdy(cache)
+    W_dUdz = NSOperators.W_dUdz(cache)
+    V_dVdy = NSOperators.V_dVdy(cache)
+    W_dVdz = NSOperators.W_dVdz(cache)
+    V_dWdy = NSOperators.V_dWdy(cache)
+    W_dWdz = NSOperators.W_dWdz(cache)
+    rx = NSOperators.rx(cache)
+    ry = NSOperators.ry(cache)
+    rz = NSOperators.rz(cache)
 
     # assign mean aliases
-    ū = cache.mean_data[1]
-    dūdy = cache.mean_data[2]
-    d2ūdy2 = cache.mean_data[3]
+    ū = NSOperators.ū(cache)
+    dūdy = NSOperators.dūdy(cache)
+    d2ūdy2 = NSOperators.d2ūdy2(cache)
 
     # calculate local residual
     @. rx = dUdt + U[2]*dūdy - cache.Re_recip*(d2Udy2 + d2Udz2) - cache.Ro*U[2] + V_dUdy + W_dUdz
@@ -46,39 +44,42 @@ function localresidual!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector
     return VectorField(rx, ry, rz)
 end
 
-ℜ(cache::Cache) = 0.5*norm(VectorField(cache.spec_cache[36], cache.spec_cache[37], cache.spec_cache[38]))^2
+ℜ(cache::Cache) = 0.5*norm(VectorField(rx(cache), ry(cache), rz(cache)))^2
 
 function dℜ!(cache::Cache)
     # assign spectral aliases
-    rx = cache.spec_cache[36]
-    ry = cache.spec_cache[37]
-    dℜx = cache.spec_cache[39]
-    dℜy = cache.spec_cache[40]
-    dℜz = cache.spec_cache[41]
-    drxdt = cache.spec_cache[42]
-    drydt = cache.spec_cache[43]
-    drzdt = cache.spec_cache[44]
-    d2rxdz2 = cache.spec_cache[48]
-    d2rydz2 = cache.spec_cache[49]
-    d2rzdz2 = cache.spec_cache[50]
-    d2rxdy2 = cache.spec_cache[54]
-    d2rydy2 = cache.spec_cache[55]
-    d2rzdy2 = cache.spec_cache[56]
-    V_drxdy = cache.spec_cache[57]
-    W_drxdz = cache.spec_cache[58]
-    V_drydy = cache.spec_cache[59]
-    W_drydz = cache.spec_cache[60]
-    V_drzdy = cache.spec_cache[61]
-    W_drzdz = cache.spec_cache[62]
-    rx_dUdy = cache.spec_cache[63]
-    ry_dVdy = cache.spec_cache[64]
-    rz_dWdy = cache.spec_cache[65]
-    rx_dUdz = cache.spec_cache[66]
-    ry_dVdz = cache.spec_cache[67]
-    rz_dWdz = cache.spec_cache[68]
+    rx = NSOperators.rx(cache)
+    ry = NSOperators.ry(cache)
+    dℜx = NSOperators.dℜx(cache)
+    dℜy = NSOperators.dℜy(cache)
+    dℜz = NSOperators.dℜz(cache)
+    drxdt = NSOperators.drxdt(cache)
+    drydt = NSOperators.drydt(cache)
+    drzdt = NSOperators.drzdt(cache)
+    d2rxdz2 = NSOperators.d2rxdz2(cache)
+    d2rydz2 = NSOperators.d2rydz2(cache)
+    d2rzdz2 = NSOperators.d2rzdz2(cache)
+    d2rxdy2 = NSOperators.d2rxdy2(cache)
+    d2rydy2 = NSOperators.d2rydy2(cache)
+    d2rzdy2 = NSOperators.d2rzdy2(cache)
+    V_drxdy = NSOperators.V_drxdy(cache)
+    W_drxdz = NSOperators.W_drxdz(cache)
+    V_drydy = NSOperators.V_drydy(cache)
+    W_drydz = NSOperators.W_drydz(cache)
+    V_drzdy = NSOperators.V_drzdy(cache)
+    W_drzdz = NSOperators.W_drzdz(cache)
+    rx_dUdy = NSOperators.rx_dUdy(cache)
+    ry_dVdy = NSOperators.ry_dVdy(cache)
+    rz_dWdy = NSOperators.rz_dWdy(cache)
+    rx_dUdz = NSOperators.rx_dUdz(cache)
+    ry_dVdz = NSOperators.ry_dVdz(cache)
+    rz_dWdz = NSOperators.rz_dWdz(cache)
+    dℜx = NSOperators.dℜx(cache)
+    dℜy = NSOperators.dℜy(cache)
+    dℜz = NSOperators.dℜz(cache)
 
     # assign mean aliases
-    dūdy = cache.mean_data[2]
+    dūdy = NSOperators.dūdy(cache)
 
     # calculate residual gradient
     @. dℜx = -drxdt - V_drxdy - W_drxdz - cache.Re_recip*(d2rxdy2 + d2rxdz2) + cache.Ro*ry                                         # NOTE: verified term-by-term
