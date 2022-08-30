@@ -87,3 +87,13 @@ function dℜ!(cache::Cache)
 
     return VectorField(dℜx, dℜy, dℜz)
 end
+
+unsafe_ℜdℜ!(cache::Cache{T, S}) where {T, S} = (ℜ(cache), dℜ!(cache))
+
+function ℜdℜ!(U::AbstractVector{S}, cache::Cache{T, S}) where {T, S}
+    update_v!(U, cache)
+    update_p!(cache)
+    localresidual!(U, cache)
+    update_r!(cache)
+    return ℜ(cache), dℜ!(cache)
+end
