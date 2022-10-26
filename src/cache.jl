@@ -1,7 +1,7 @@
 # The file contains the definition for the global cache of the optimisation.
 
 # TODO: can the typing of this struct be simplified to only include the information that is absolutely necessary
-#       i.e. simplify the type information to reduce redundancy as much as possible
+# TODO: add extra constructor that only takes ū and computes the gradients automatically
 struct Cache{T, S, P, BC, PLANS}
     spec_cache::Vector{S}
     phys_cache::Vector{P}
@@ -27,7 +27,7 @@ struct Cache{T, S, P, BC, PLANS}
         IFFT! = IFFTPlan!(U)
 
         # initialise laplace operator
-        lapl = Laplace(size(u)[1], size(u)[2], get_β(get_grid(u)), u.grid.Dy[2], u.grid.Dy[1])
+        lapl = Laplace(size(u)[1], size(u)[2], get_β(u), get_Dy(u), get_Dy2(u))
 
         # initialise boundary data cache
         bc_cache = (Matrix{Complex{T}}(undef, size(U)[2], size(U)[3]),
@@ -39,7 +39,6 @@ struct Cache{T, S, P, BC, PLANS}
     end
 end
 
-# TODO: can I create methods for grid the fields without having to call them explicitely?
 Cache(grid::G, ū::Vector{T}, dūdy::Vector{T}, d2ūdy2::Vector{T}, Re::T, Ro::T) where {G, T<:Real} = Cache(SpectralField(grid), PhysicalField(grid), ū, dūdy, d2ūdy2, Re, Ro)
 
 # methods to access type fields safely
@@ -76,7 +75,7 @@ for (i, method) in enumerate(phys_methods)
     end
 end
 
-function update_v!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
+function update_v!(U::AbstractVector{S}, cache::Cache{T, S}) where {T, S}
     # assign spectral aliases
     dUdt = NSOperators.dUdt(cache)
     dVdt = NSOperators.dVdt(cache)
@@ -188,7 +187,7 @@ function update_v!(U::V, cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     return
 end
 
-function update_p!(cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
+function update_p!(cache::Cache{T, S}) where {T, S}
     # assign aliases
     dUdy = NSOperators.dUdy(cache)
     d2Vdy2 = NSOperators.d2Vdy2(cache)
@@ -201,21 +200,25 @@ function update_p!(cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
     dūdy = NSOperators.dūdy(cache)
 
     # compute rhs of pressure equation
-    @. poiss_rhs = -2.0*(dVdz_dWdy - dVdy_dWdz) - cache.Ro*dUdy
+    # @. poiss_rhs = -2.0*(dVdz_dWdy - dVdy_dWdz) - cache.Ro*dUdy
+    @. poiss_rhs = -cache.Ro*dUdy
     @views begin
         @. poiss_rhs[:, 1, 1] -= cache.Ro*dūdy
     end
 
     # extract boundary condition data
-    @views begin
-        @. cache.bc_cache[1] = cache.Re_recip*d2Vdy2[1, :, :]
-        @. cache.bc_cache[2] = cache.Re_recip*d2Vdy2[end, :, :]
-    end
-    cache.bc_cache[1][1, 1] = -cache.Ro
-    cache.bc_cache[2][1, 1] = cache.Ro
+    # @views begin
+    #     @. cache.bc_cache[1] = cache.Re_recip*d2Vdy2[1, :, :]
+    #     @. cache.bc_cache[2] = cache.Re_recip*d2Vdy2[end, :, :]
+    # end
+    # cache.bc_cache[1][1, 1] = -cache.Ro
+    # cache.bc_cache[2][1, 1] = cache.Ro
+    cache.bc_cache[1] .= 0.0
+    cache.bc_cache[2] .= 0.0
 
     # solve the pressure equation
-    solve!(P, cache.lapl, poiss_rhs, cache.bc_cache)
+    # solve!(P, cache.lapl, poiss_rhs, cache.bc_cache)
+    solve!(P, cache.lapl, poiss_rhs)
 
     # compute pressure gradients
     ddy!(P, dPdy)
