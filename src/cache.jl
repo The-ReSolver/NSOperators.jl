@@ -27,6 +27,7 @@ struct Cache{T, S, P, BC, PLANS}
         IFFT! = IFFTPlan!(U)
 
         # initialise laplace operator
+        # FIXME: ARE THE DERIVATIVES THE WRONG WAY ROUND???
         lapl = Laplace(size(u)[1], size(u)[2], get_β(u), get_Dy(u), get_Dy2(u))
 
         # initialise boundary data cache
@@ -227,7 +228,7 @@ function update_p!(cache::Cache{T, S}) where {T, S}
     return
 end
 
-function update_r!(cache::Cache{T, S}) where {T, S, V<:AbstractVector{S}}
+function update_r!(cache::Cache)
     # assign spectral aliases
     ifft_tmp1 = NSOperators.ifft_tmp1(cache)
     ifft_tmp2 = NSOperators.ifft_tmp2(cache)
